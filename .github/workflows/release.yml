@@ -79,7 +79,7 @@ jobs:
       with:
         #upload_url: ${{ github.event.release.upload_url }}
         upload_url: ${{ env.UPLOAD_URL }}
-        asset_path: energyuse-${{ env.RELEASE_VERSION }}-${{ matrix.platform }}-v${{ matrix.version }}.tgz
+        asset_path: homebridge-${{ env.RELEASE_VERSION }}-${{ matrix.platform }}-v${{ matrix.version }}.tgz
       
     - name: Upload Release Asset shasum
       uses: shogo82148/actions-upload-release-asset@v1
