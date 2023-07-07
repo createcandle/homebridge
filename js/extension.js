@@ -334,7 +334,7 @@
                                 document.getElementById('extension-homebridge-content-container').classList.remove('extension-homebridge-not-launched-yet');
                             
                                 // Create link to configuration interface
-                                var config_url = "http://" + body.config_ip + ":" + body.config_port;
+                                var config_url = "http://" + body.config_ip + ":" + body.config_port + "/plugins";
                                 document.getElementById('extension-homebridge-config-ui-link').href = config_url;
                                 document.getElementById('extension-homebridge-main-launched').style.display = 'block';
                                 
