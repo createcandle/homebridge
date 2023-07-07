@@ -1,6 +1,6 @@
 {
   "author": "CandleSmartHome.com",
-  "description": "Integrate with the Apple smart home ecosystem",
+  "description": "Integrate with the Apple Homekit ecosystem",
   "content_scripts": [
     {
       "css": [
@@ -38,17 +38,17 @@
         "A boolean setting": {
           "type": "boolean",
           "description": "If you enable this feature, something will happen. Whenever users save new settings the addon will be restarted."
-        },
+		},
         "A number setting": {
           "type": "number",
           "description": "Write a description here for a float."
-        },
+		},
         "A slider setting": {
           "description": "Write a description here for a number. This one will be displayed as a slider, and is useful if you want to limit the range that users can enter. The only difference is that a maximum and minimum is provided",
-          "minimum": -10,
-          "maximum": 10,
-          "type": "number"
-        },
+		  "minimum": -10,
+		  "maximum": 10,
+		  "type": "number"
+		},
         "Homebridge name": {
           "type": "string",
           "description": "The name of this bridge that will be shown in your iOS devices"
@@ -56,34 +56,34 @@
         "A password string setting": {
           "type": "string",
           "description": "This is a password test",
-          "writeOnly": true
-        },
+		  "writeOnly": true
+		},
         "An enum setting": {
           "type": "string",
           "description": "Write a description here. The only difference with a normal string is that enum is provided, which forces uses to select on of the options.",
           "enum": [
-            "Auto",
+			"Auto",
             "Option 1",
-            "Option 2"
+			"Option 2"
           ]
-        },
+		},
         "Debugging": {
           "type": "boolean",
           "description": "Advanced. Starting this sentence with 'Advanced. ' will cause it be be shown under the advanced settings in the Candle store."
         }
       },
-      "required": [],
+      "required": ["A string setting"],
       "type": "object"
     }
   },
   "short_name": "homebridge",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "web_accessible_resources": [
     "css/*.css",
     "images/*.svg",
-    "images/*.png",
-    "images/*.gif",
-    "images/*.jpg",
+	"images/*.png",
+	"images/*.gif",
+	"images/*.jpg",
     "js/*.js",
     "views/*.html"
   ]

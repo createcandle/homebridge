@@ -94,7 +94,7 @@ class HomebridgeAdapter(Adapter):
         self.a_number_setting = 0
         
         # this is a completely random set of items. It is sent to the user interface through the API handler, which till turn it into a list
-        self.items_list = [
+        self.plugins_list = [
                         {'name':'Item 1', 'value':55},
                         {'name':'Item 2', 'value':25},
                         {'name':'Item 4', 'value':200},
@@ -110,9 +110,10 @@ class HomebridgeAdapter(Adapter):
         self.launched = False
         self.hb_config_data = {}
         self.hb_name = "Candle Homebridge"
-        
+        self.qr_code_url = ""
         self.config_port = 8581
         self.ip = get_ip()
+        self.hostname = socket.gethostname()
 
         self.setup_id = ""
 
@@ -132,6 +133,7 @@ class HomebridgeAdapter(Adapter):
         self.hb_path = os.path.join(self.data_path, "hb")
         print("self.hb_path: " + str(self.hb_path))
         self.hb_node_path = os.path.join(self.hb_path, "opt","homebridge","bin","node")
+        self.hb_npm_path = os.path.join(self.hb_path, "opt","homebridge","bin","npm")
         self.hb_service_path = os.path.join(self.hb_path, "opt","homebridge","lib","node_modules","homebridge-config-ui-x","dist/bin/hb-service.js")
         self.hb_storage_path = os.path.join(self.hb_path, "var","lib","homebridge") # TODO: just make this the data root path for optimal backup support?
         self.hb_plugins_path = os.path.join(self.hb_storage_path, "node_modules") 
@@ -197,6 +199,9 @@ class HomebridgeAdapter(Adapter):
 
 
 
+        # create list of installed plugins
+        self.update_installed_plugins_list()
+
         # Start the API handler. This will allow the user interface to connect
         try:
             if self.DEBUG:
@@ -228,9 +233,6 @@ class HomebridgeAdapter(Adapter):
             print("Could not create homebridge_device: " + str(ex))
 
 
-
-
-
         if self.hb_installed == False:
             print("INSTALLING HOMEBRIDGE")
             self.install_hb()
@@ -243,8 +245,9 @@ class HomebridgeAdapter(Adapter):
         
         # The addon is now ready
         self.ready = True 
-
-
+        
+        if self.DEBUG:
+            print("homebridge init done")
 
 
     def add_from_config(self):
@@ -396,6 +399,10 @@ class HomebridgeAdapter(Adapter):
                 print("Homebridge installed succesfully")
                 self.hb_installed = True
                 self.hb_install_progress = 100
+                
+                # now start Homebridge
+                self.run_hb()
+                
             else:
                 print("Homebridge failed to fully install")
                 self.hb_install_progress = -100
@@ -409,7 +416,7 @@ class HomebridgeAdapter(Adapter):
 
 
     def run_hb(self):
-        
+        print("IN RUN_HB")
         os.system('pkill hb-service')
         time.sleep(1)
         
@@ -445,9 +452,6 @@ class HomebridgeAdapter(Adapter):
                     self.hb_config_data["bridge"]["name"] = "Candle " + str(self.hb_config_data["bridge"]["name"])
                     made_modifications = True
                     
-                    
-        
-            
             if made_modifications is True:
                 if self.DEBUG:
                     print("Saving modified config file")
@@ -465,6 +469,7 @@ class HomebridgeAdapter(Adapter):
         if self.DEBUG:
             print("starting the homebridge thread")
         try:
+            #self.really_run_hb()
             self.t = threading.Thread(target=self.really_run_hb)
             self.t.daemon = True
             self.t.start()
@@ -486,7 +491,7 @@ class HomebridgeAdapter(Adapter):
         hb_command += str(self.hb_node_path)  # could potentially skip this if the node versions are equal
         hb_command += " " + str(self.hb_service_path)
         hb_command += " run -I -U " + str(self.hb_storage_path) + " -P " + str(self.hb_plugins_path)
-        hb_command += " --strict-plugin-resolution --stdout"
+        #hb_command += " --strict-plugin-resolution" #--stdout
         
         self.launched = True
 
@@ -503,16 +508,22 @@ class HomebridgeAdapter(Adapter):
             if self.DEBUG:
                 print("hb process PID = " + str(self.hb_process_pid))
             
-            # Read both stdout and stderr simultaneously
-            sel = selectors.DefaultSelector()
-            sel.register(self.hb_process.stdout, selectors.EVENT_READ)
-            sel.register(self.hb_process.stderr, selectors.EVENT_READ)
+            
             
             while self.running:
+                
+                # Read both stdout and stderr simultaneously
+                sel = selectors.DefaultSelector()
+                sel.register(self.hb_process.stdout, selectors.EVENT_READ)
+                sel.register(self.hb_process.stderr, selectors.EVENT_READ)
+                
                 for key, val1 in sel.select():
                     line = key.fileobj.readline()
+                    print("???" + str(line))
                     if not line:
-                        break
+                        #pass
+                        #break
+                        continue
                     if key.fileobj is self.hb_process.stdout:
                         #if self.DEBUG:
                         #print(f"STDOUT: {line}", end="", file=sys.stdout)
@@ -520,7 +531,7 @@ class HomebridgeAdapter(Adapter):
                     else:
                         #print(f"STDERR: {line}", end="", file=sys.stderr)
                         self.parse_hb(f"{line}")
-                time.sleep(.02)
+                time.sleep(0.02)
                     
                     
         if self.DEBUG:
@@ -530,9 +541,34 @@ class HomebridgeAdapter(Adapter):
 
 
     def parse_hb(self,line):
-        print("parse_hb got line: " + str(line))
+        if self.DEBUG:
+            print("parse_hb got line: " + str(line))
+        if line.startswith('X-HM:'):
+            self.qr_code_url = str(line).rstrip()
+            if self.DEBUG:
+                print("spotted QR code url: " + str(self.qr_code_url))
+
 
         
+    def update_installed_plugins_list(self):
+        print("in update_installed_plugins_list")
+        self.plugins_list = []
+        files = os.listdir(self.hb_plugins_path)
+        if self.DEBUG:
+            print("plugin directories in node_modules: " + str(files))
+        for file_name in files:
+            print(str(file_name))
+            if os.path.isdir(os.path.join(self.hb_plugins_path,file_name)):
+                if self.DEBUG:
+                    print("is dir: " + str(file_name))
+                if file_name.startswith(".") or file_name == 'homebridge':
+                    if self.DEBUG:
+                        print("spotted hidden or homebridge node module, should ignore this")
+                    continue
+                #if file_name.startswith("homebridge") and file_name.endswith('.deb'):
+                self.plugins_list.append({'name':file_name,'value':1})
+
+        print("self.plugins_list: " + str(self.plugins_list))
 
 
 
@@ -647,6 +683,7 @@ class HomebridgeAdapter(Adapter):
         shell("sudo kill {}".format(self.hb_process_pid))
         time.sleep(1)
         os.system('pkill hb-service')
+
 
     def remove_thing(self, device_id):
         """ Happens when the user deletes the thing."""
@@ -983,13 +1020,14 @@ class HomebridgeAPIHandler(APIHandler):
                                       'a_number_setting':self.adapter.a_number_setting,
                                       'thing_state':self.adapter.persistent_data['state'],
                                       'slider_value':self.adapter.persistent_data['slider'],
-                                      'items_list':self.adapter.items_list,
+                                      'plugins_list':self.adapter.plugins_list,
                                       'hb_installed':self.adapter.hb_installed,
                                       'hb_install_progress':self.adapter.hb_install_progress,
                                       'launched':self.adapter.launched,
                                       'config_port':self.adapter.config_port,
                                       'hb_name':hb_name,
                                       'config_ip':self.adapter.ip,
+                                      'hostname':self.adapter.hostname,
                                       'debug':self.adapter.DEBUG
                                       }),
                         )
@@ -1006,11 +1044,23 @@ class HomebridgeAPIHandler(APIHandler):
                         code = ""
                         try:
                             if "bridge" in self.adapter.hb_config_data and len(self.adapter.setup_id) > 0:
+                                
                                 pin = self.adapter.hb_config_data["bridge"]["pin"]
                                 
-                                code = generate_homekit_qr_code(2,pin,self.adapter.setup_id)
-                                state = True
-                            
+                                if self.adapter.qr_code_url == "":
+                                    with open(self.adapter.hb_logs_file_path) as f: 
+                                        hb_log = f.read().splitlines()
+                                        for line in hb_log:
+                                            print("hb_log line: " + str(line))
+                                            if line.startswith('X-HM:'):
+                                                self.adapter.qr_code_url = str(line).rstrip()
+                                                if self.DEBUG:
+                                                    print("spotted QR code url: " + str(self.adapter.qr_code_url))
+                                code = self.adapter.qr_code_url #generate_homekit_qr_code(2,pin,self.adapter.setup_id)
+                                
+                                if code != "":
+                                    state = True
+                                
                         except Exception as ex:
                             if self.DEBUG:
                                 print("Error getting pin: " + str(ex))
@@ -1018,22 +1068,46 @@ class HomebridgeAPIHandler(APIHandler):
                         return APIResponse(
                           status=200,
                           content_type='application/json',
-                          content=json.dumps({'state':state,'code':code}),
+                          content=json.dumps({'state':state,'code':code,'pin':pin}),
                         )
                     
                     
-                    # DELETE
-                    # In this example we call out to a separate delete method instead of handling the action directly
-                    elif action == 'delete':
+                    # INSTALL PLUGIN
+                    elif action == 'install_plugin':
                         if self.DEBUG:
-                            print("API: in delete")
+                            print("API: in install_plugin")
+                        
+                        state = False
+                        
+                        try:
+                            name = str(request.body['name'])
+                            version = str(request.body['version'])
+                            
+                            state = self.install_plugin(name,version) # This method returns True all the time..
+                            
+                        except Exception as ex:
+                            if self.DEBUG:
+                                print("Error installing plugin: " + str(ex))
+                        
+                        return APIResponse(
+                          status=200,
+                          content_type='application/json',
+                          content=json.dumps({'state' : state}),
+                        )
+                    
+                    
+                    
+                    # DELETE PLUGIN
+                    elif action == 'delete_plugin':
+                        if self.DEBUG:
+                            print("API: in delete_plugin")
                         
                         state = False
                         
                         try:
                             name = str(request.body['name'])
                             
-                            state = self.delete_item(name) # This method returns True if deletion was succesful
+                            state = self.delete_plugin(name) # This method returns True if deletion was succesful
                             
                         except Exception as ex:
                             if self.DEBUG:
@@ -1080,18 +1154,46 @@ class HomebridgeAPIHandler(APIHandler):
 
 
     
+    # Install a new plugin
+    def install_plugin(self,name,version="@latest"):
+        plugin_name_full = str(name) + str(version)
+        if self.DEBUG:
+            print("in install_plugin. Name: " + str(name) + " -> " + str(plugin_name_full))
+        
+        p = subprocess.Popen([self.adapter.hb_npm_path,"install","--save",plugin_name_full], cwd=self.adapter.hb_plugins_path)
+        p.wait()
+        
+        self.adapter.update_installed_plugins_list()
+        
+        if self.DEBUG:
+            print("plugin should now be installed")
+        
+        # Check if a directory with the plugin name now exists
+        return os.path.isdir( os.path.join(self.adapter.hb_plugins_path,name) )
+        #return True
+    
+
+
+    
     # Loop over all the items in the list, which is stored inside the adapter instance.
-    def delete_item(self,name):
-        print("in delete_item. Name: " + str(name))
-        for i in range(len(self.adapter.items_list)):
-            if self.adapter.items_list[i]['name'] == name:
+    def delete_plugin(self,name):
+        print("in delete_plugin. Name: " + str(name))
+        
+        # uninstall via npm here
+        p = subprocess.Popen([self.adapter.hb_npm_path,"uninstall",name], cwd=self.adapter.hb_plugins_path)
+        p.wait()
+        
+        for i in range(len(self.adapter.plugins_list)):
+            if self.adapter.plugins_list[i]['name'] == name:
                 # Found it
-                del self.adapter.items_list[i]
-                print("deleted item from list")
+                del self.adapter.plugins_list[i]
+                print("deleted plugin from list")
                 return True
                 
+        self.adapter.update_installed_plugins_list()
+        
         # If we end up there, the name wasn't found in the list
-        return False
+        return True
 
 
 

@@ -1,18 +1,4 @@
-<!-- 
-The controller creates a view elemenf for the addon. This addon's Javascript then loads this chunk of HTML into that view.
-
-It's recommended to not manipulate the view container. That's why this HTML starts with making its own content container.
-
-- extension-homebridge-content-container is the main container. It's use is mainly to allow everything inside to scroll (through overflow: auto in the CSS)
-- - extension-homebridge-content holds the content for the addon. It starts with the title, and is then followed by some tabs.
-
-The page has a imaginary border of 10 rem, which is where things like the menu button reside.(Those buttons are themselves 2rem from the side, and 8 rem wide and tall).
-
-Addons may add buttons to the top-right and bottom-right corner. Buttons to add or refresh things are prefered in the bottom-right. Settings or tutorial buttons are prefered in the rop right.
-
--->
-
-<div id="extension-homebridge-content-container">
+<div id="extension-homebridge-content-container" class="extension-homebridge-not-launched-yet">
   
     <div id="extension-homebridge-content">
         <h3 id="extension-homebridge-title">Homebridge</h3> <!-- The icon is loaded into this title as a background, through CSS -->
@@ -30,7 +16,7 @@ Addons may add buttons to the top-right and bottom-right corner. Buttons to add 
                         </div>
                     </div>
                     
-                    <div id="extension-homebridge-main-busy-installing" style="display:none">
+                    <div id="extension-homebridge-main-busy-installing" class="extension-homebridge-area" style="display:none">
                         <h2>Installing Homebridge</h2>
                         <div class="extension-homebridge-spinner">
                             <div></div><div></div><div></div><div></div>
@@ -43,18 +29,18 @@ Addons may add buttons to the top-right and bottom-right corner. Buttons to add 
                         <p>Please wait</p>
                     </div>
                     
-                    <div id="extension-homebridge-main-busy-installing" style="display:none">
+                    <div id="extension-homebridge-main-busy-installing" class="extension-homebridge-area" style="display:none">
                         <h2>Installation failed</h2>
                         <p>Try uninstalling and then re-installing this addon</p>
                         <p>Make sure you have a working internet connection</p>
                     </div>
                     
-                    <div id="extension-homebridge-main-installation-complete" style="display:none">
+                    <div id="extension-homebridge-main-installation-complete" class="extension-homebridge-area" style="display:none">
                         <h2>Installation complete</h2>
                         <p>Congratulations, you can now use Homebridge. </p>
                     </div>
                     
-                    <div style="text-align:right">
+                    <div id="extension-homebridge-show-pairing-button-container" style="display:none;text-align:right">
                         <button id="extension-homebridge-show-pairing-button" class="text-button">Pair with iPhone or iPad</button>
                     </div>
                     
@@ -74,20 +60,21 @@ Addons may add buttons to the top-right and bottom-right corner. Buttons to add 
                                     <div></div><div></div><div></div><div></div>
                                 </div>
                             </div>
-                            <!--<p>Or manually pair using this code: <span id="extension-homebridge-pairing-code">?</span></p>-->
+                            <p style="text-align:center"><span id="extension-homebridge-pairing-code"></span></p>
                         </div>
                     </div>
                     
-                    <div id="extension-homebridge-main-launched" class="extension-homebridge-area" style="display:none">
+                    <div id="extension-homebridge-main-launched" class="extension-homebridge-area extension-homebridge-after-launch" style="display:none">
                         <h2>Homebridge has started</h2>
-                        <p>You can now open the Homebridge interface. There you can search for and add specific plugins.</p>
+                        <p>You can now open the Homebridge interface. There you can search for and add specific plugins. It can be found at:</p>
+                        <p id="extension-homebridge-config-ui-readable-link">...</p>
                         <div style="text-align:right">
                             <a id="extension-homebridge-config-ui-link" href="#" target="_blank"><button class="text-button">Open configuration</button></a>
                         </div>
                     </div>
                     
                     <!--
-                    <div id="extension-homebridge-main-items-list">(Items list will be loaded here)</div>
+                    
                 
                     <p>Or you could show the state of the thing here. At least, the state of the thing when the addon loaded. </p>
 
@@ -97,9 +84,17 @@ Addons may add buttons to the top-right and bottom-right corner. Buttons to add 
                     
                     <p>You could create an interval to continuously get the latest values, but that's something for a more advanced example.</p>
                 
-                    <button id="extension-homebridge-show-second-page-button" class="icon-button"></button>
+                    
                     -->
+                
+                    <div id="extension-homebridge-installed-plugins-output-container" class="extension-homebridge-area extension-homebridge-after-launch" style="display:none">
+                        <h2>Installed plugins</h2>
+                        <div id="extension-homebridge-installed-plugins-output"></div>
+                    </div>
         
+        
+                    <button id="extension-homebridge-show-second-page-button" class="icon-button extension-homebridge-after-launch"></button>
+                    
                 </div>
                 
             </div>
@@ -110,14 +105,16 @@ Addons may add buttons to the top-right and bottom-right corner. Buttons to add 
                 
                 <div class="extension-homebridge-centered-page"> <!-- This centered page div sets a maximum with for the content and centers it. -->
                 
-        		<h2>Second page</h2>
-                <p>Do something else here. Maybe a settings page, or a page to add new items to the list, or don't use a second page at all.</p>
-                <p>It's up to you.</p>
+        		
                 
                 <div class="extension-homebridge-area">
-                    <p>This is an "area", which means it gets a slightly darker rounded background. In general padding is 2rem.</p>
-                    <p>This is useful as a way to indicate input forms, for example. In this case we'll show the number value from the settings:</p>
-                    <p>Settings number: <strong id="extension-homebridge-number-setting-output"></strong></p>
+                    <h2>Add plugins</h2>
+                    <div style="display:flex;">
+                        <input id="extension-homebridge-search-input" type="text" placeholder="Search" style="flex-grow:1"/>
+                        <button id="extension-homebridge-search-button" class="text-button">Search</button>
+                    </div>
+                    
+                    <div id="extension-homebridge-search-output"></div>
                 </div>
                 
                 
@@ -131,12 +128,9 @@ Addons may add buttons to the top-right and bottom-right corner. Buttons to add 
                 
                 
         
-                <img src="/extensions/homebridge/images/lotus.jpg" />
+                
         
-                <!-- 
-                By having this button inside of this tab, it will be automatically hidden when it's pressed.
-                Also, note there is a small container div around the button. This is done to make the area that can be hit sligtly bigger, so that it works better on touch screens.    
-                -->
+                <!-- <img src="/extensions/homebridge/images/lotus.jpg" /> -->
                 <div id="extension-homebridge-back-button-container">
                     <button id="extension-homebridge-back-button" class="back-button icon-button" data-l10n-id="back-button" aria-label="Back"></button>
                 </div>

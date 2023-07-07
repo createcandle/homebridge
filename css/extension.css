@@ -21,9 +21,16 @@ extension-homebridge-
     max-width: 100%;
 }
 
+#extension-homebridge-view ol li{
+    margin-bottom:.5rem;
+}
 
 #extension-homebridge-view img{
     max-width:100%;
+}
+
+#extension-homebridge-view a{
+    color:white;
 }
 
 #extension-homebridge-content-container {
@@ -70,6 +77,8 @@ extension-homebridge-
 .extension-homebridge-centering-container{
     display: flex;
     justify-content: center;
+    align-items: center;
+    flex-direction: column;
     margin: 4rem;
 }
 
@@ -77,6 +86,9 @@ extension-homebridge-
     max-width:300px;
 }
 
+#extension-homebridge-pairing-code{
+    font-weight:bold;
+}
 
 /* In this example we hide the second page based on a CSS class that is added or removed from the content container div */
 #extension-homebridge-second-page{
@@ -111,6 +123,9 @@ extension-homebridge-
 }
 
 
+#extension-homebridge-config-ui-readable-link{
+    font-weight:bold;
+}
 
 
 
@@ -181,6 +196,17 @@ extension-homebridge-
 
 
 
+
+/*  launched  */
+
+.extension-homebridge-not-launched-yet .extension-homebridge-after-launch{
+    display:none;
+}
+
+
+
+
+
 /*  SECOND PAGE  */
 
 
@@ -211,6 +237,40 @@ extension-homebridge-
     background-size: 5.6rem;
     box-shadow: 0 1px 3px rgb(0 0 0 / 6%), 0 1px 2px rgb(0 0 0 / 12%);
 }
+
+
+/*  SEARCH  */
+
+
+.extension-homebridge-search-item{
+    background-color:rgba(0,0,0,.15);
+    padding:2rem;
+    margin-top:2rem;
+    border-radius:.5rem;
+}
+.extension-homebridge-search-item h3:first-letter {
+    text-transform: uppercase;
+}
+
+
+.extension-homebridge-search-item-button-container{
+    display:flex;
+    justify-content:right;
+}
+
+#extension-homebridge-search-button,
+.extension-homebridge-search-item-install-button{
+    margin-left:1rem;
+}
+
+.extension-homebridge-search-item-being-installed{
+    background-color:rgba(0,0,0,.50);
+}
+
+.extension-homebridge-search-item-already-installed{
+    opacity:.5;
+}
+
 
 
 
