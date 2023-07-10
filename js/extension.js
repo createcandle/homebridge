@@ -6,6 +6,9 @@
             this.debug = false; // if enabled, show more output in the console
             this.response_error_count = 0;
             
+            this.all_things = [];
+            this.selected_things = [];
+            
             // We'll try and get this data from the addon backend
             this.a_number_setting = null;
             this.plugins = [];
@@ -17,6 +20,21 @@
               'homebridge-to-hoobs',
               'homebridge-server',
             ];
+            
+            
+            setTimeout(() => {
+                const jwt = localStorage.getItem('jwt');
+                //console.log("jwt: ", jwt);
+    	        window.API.postJson(
+    	          `/extensions/${this.id}/api/ajax`,
+    				{'action':'save_token','token':jwt}
+
+    	        ).then((body) => {
+                    console.log("homebridge delayed update jwt response: ", body);
+    	        }).catch((e) => {
+    	  			console.log("Homebridge: error (delayed) saving token: ", e);
+    	        });
+            }, 5100);
             
             
 			//console.log("Adding homebridge addon to main menu");
@@ -68,9 +86,50 @@
 			else{
 				main_view.innerHTML = this.content;
 			}
+            
+            // Save things button
+            document.getElementById('extension-homebridge-save-things-button').addEventListener('click', (event) => {
+                if(this.debug){
+                    console.log("Homebridge: save things button clicked");
+                }
+                
+                var selected_things = [];
+                
+                var all_thing_checkboxes = document.querySelectorAll('.extension-homebridge-edit-item-thing-checkbox');
+                //console.log('all_thing_checkboxes:', all_thing_checkboxes);
+                for(var i=0; i<all_thing_checkboxes.length; i++){
+                    //console.log("selected_things[i].dataset.device_id: ", all_thing_checkboxes[i]['dataset']['thing_id']);
+                    //console.log("alt: ", all_thing_checkboxes[i].getAttribute('data-thing_id'));
+                    if(all_thing_checkboxes[i].checked){
+                        //console.log("checked: ", all_thing_checkboxes[i].getAttribute('data-thing_id'));
+                        selected_things.push( {"thing_id":all_thing_checkboxes[i].getAttribute('data-thing_id')} );
+                    }
+                    else{
+                        //console.log("not checked");
+                    }
+                }
+                console.log("selected_things: ", selected_things);
+                
+                
+		  		// Init
+		        window.API.postJson(
+		          `/extensions/${this.id}/api/ajax`,
+                    {'action':'save_things','things':selected_things}
+
+		        ).then((body) => {
+                    if(this.debug){
+                        console.log('homebridge save_things response: ', body);
+                    }
 			
+		        }).catch((e) => {
+		  			console.log("Homebridge: error saving things list: ", e);
+		        });	
+                
+            });
+            
             
             // ADD button press
+            /*
             document.getElementById('extension-homebridge-add-item-button').addEventListener('click', (event) => {
             	if(this.debug){
                     console.log("first button clicked. Event: ", event);
@@ -116,66 +175,12 @@
 				});
             
             });
-            
+            */
             
             // Easter egg when clicking on the title
 			document.getElementById('extension-homebridge-title').addEventListener('click', (event) => {
                 this.show();
 			});
-            
-            
-            // PAIRING BUTTON
-            document.getElementById('extension-homebridge-show-pairing-button').addEventListener('click', (event) => {
-                if(this.debug){
-                    console.log("clicked on pairing button");
-                }
-                document.getElementById('extension-homebridge-pairing').style.display = 'block';
-                
-		  		// Get_pin
-		        window.API.postJson(
-		          `/extensions/${this.id}/api/ajax`,
-                    {'action':'pair'}
-
-		        ).then((body) => {
-                    if(this.debug){
-                        console.log("pair response: ", body);
-                    }
-                    if(typeof body.code != 'undefined'){
-                        if(body.state == true){
-                            
-                            // Generate QR code
-                            //console.log("generating QR code");
-                            const target_element = document.getElementById('extension-homebridge-pairing-qr-code');
-                            target_element.innerHTML = "";
-                    	    var qrcode = new QRCode(target_element, {
-                    		    width : 300,
-                    		    height : 300
-                    	    });
-                    	    qrcode.makeCode(body.code);
-                            
-                            let pin_string = body.pin.toString();
-                            
-                            let formatted_pin = pin_string;
-                            if(pin_string.length == 8){
-                                formatted_pin = pin_string.substring(0,2) + " - " + pin_string.substring(3,4); + " - " + pin_string.substring(5,7); 
-                            }
-                            
-                            // Show pin code under the QR code
-                            document.getElementById('extension-homebridge-pairing-code').innerText = formatted_pin;
-                            
-                        }
-                        else{
-                            alert("One moment, Homebridge is not ready yet");
-                        }
-                        
-                    }
-				
-		        }).catch((e) => {
-		  			console.log("Error getting pairing code or generating QR code: ", e);
-		        });	
-                
-			});
-            
             
             
             // SEARCH BUTTON
@@ -187,9 +192,7 @@
 			});
             
             
-            
             // Button to show the second page
-            
             document.getElementById('extension-homebridge-show-second-page-button').addEventListener('click', (event) => {
                 console.log("clicked on + button");
                 document.getElementById('extension-homebridge-content-container').classList.add('extension-homebridge-showing-second-page');
@@ -227,6 +230,47 @@
             this.interval = setInterval( () => {
                 this.get_init_data();
             },5000);
+         
+         
+         
+            // TABS
+            
+            var all_tabs = document.querySelectorAll('.extension-homebridge-tab');
+            //console.log('all_tabs:', all_tabs);
+            var all_tab_buttons = document.querySelectorAll('.extension-homebridge-main-tab-button');
+            //console.log('all_tab_buttons:', all_tab_buttons);
+        
+            for(var i=0; i< all_tab_buttons.length;i++){
+                all_tab_buttons[i].addEventListener('click', (event) => {
+        			//console.log("tab button clicked", event);
+                    var desired_tab = event.target.innerText.toLowerCase();
+                    
+                    if(desired_tab == '?'){desired_tab = 'tutorial';}
+
+                    console.log("desired tab: " + desired_tab);
+                    
+                    for(var j=0; j<all_tabs.length;j++){
+                        all_tabs[j].classList.add('extension-homebridge-hidden');
+                        all_tab_buttons[j].classList.remove('extension-homebridge-tab-selected');
+                    }
+                    document.querySelector('#extension-homebridge-tab-button-' + desired_tab).classList.add('extension-homebridge-tab-selected'); // show tab
+                    document.querySelector('#extension-homebridge-tab-' + desired_tab).classList.remove('extension-homebridge-hidden'); // show tab
+                    
+                    
+                    if(desired_tab == 'things'){
+                        this.show_things();
+                    }
+                    else if(desired_tab == 'pairing'){
+                        this.show_pairing();
+                    }
+                    else if(desired_tab == 'plugins'){
+                        this.show_plugins();
+                    }
+                    
+                });
+            };
+         
+            this.show_things();
             
 		}
 		
@@ -272,6 +316,9 @@
                         
                         // Hide loading spinner
                         document.getElementById('extension-homebridge-loading').classList.add('extension-homebridge-hidden');
+                        
+                        // Reveal main tab menu
+                        document.getElementById('extension-homebridge-tab-buttons-container').style.display = 'flex';
                     
                         // Handle debug preference
                         if(typeof body.debug != 'undefined'){
@@ -353,7 +400,7 @@
                                 document.getElementById('extension-homebridge-config-ui-readable-link').innerText = readable_config_url;
                             
                                 // show the pairing button
-                                document.getElementById('extension-homebridge-show-pairing-button-container').style.display = 'block';
+                                //document.getElementById('extension-homebridge-show-pairing-button-container').style.display = 'block';
                             
                             }
                         }
@@ -375,7 +422,7 @@
                         */
                         if(typeof body.plugins_list != 'undefined'){
                             this.plugins = body['plugins_list'];
-                            this.regenerate_plugins(body['plugins_list']);
+                            this.show_plugins();
                         }
 				
     		        }).catch((e) => {
@@ -396,15 +443,21 @@
 			
         }
         
+        
+        
+        
+        
 	
 		//
-		//  REGENERATE ITEMS LIST ON MAIN PAGE
+		//  REGENERATE PLUGINS LIST
 		//
 	
-		regenerate_plugins(items){
+		show_plugins(items){
             // This funcion takes a list of items and generates HTML from that, and places it in the list container on the main page
 			try {
-				if(this.debug){
+				let items = this.plugins;
+                
+                if(this.debug){
                     //console.log("regenerating. items: ", items);
                 }
                 
@@ -482,14 +535,14 @@
             
 			}
 			catch (e) {
-				console.log("Homebridge: error in regenerate_plugins: ", e);
+				console.log("Homebridge: error in show_plugins: ", e);
 			}
 		}
 	
  
  
         //
-        //  SEARCH
+        //  PLUGINS SEARCH
         //
  
         search(){
@@ -577,7 +630,7 @@
                     
                     if(already_installed){
                         item_div.classList.add('extension-homebridge-search-item-already-installed');
-                        item_div.innerHTML += '<p>Already installed</p>';
+                        item_div.innerHTML += '<p style="text-align:right;font-style:italic">Already installed</p>';
                     }
                     else{
                         // add install button
@@ -610,7 +663,13 @@
                                 if(this.debug){
                                     console.log("install_plugin response: ", body);
                                 }
-                                // if(body.state == true){
+                                
+                                if(body.state == true){
+                                    alert(plugin_name + " installed succesfully");
+                                }
+                                else{
+                                    alert(plugin_name + " installation failed!");
+                                }
 				
             		        }).catch((e) => {
             		  			console.log("Error calling install_plugin: ", e);
@@ -643,6 +702,385 @@
  
  
  
+ 
+        //
+        // SHOW THINGS
+        //
+ 
+    	show_things(action){
+        
+            //const pre = document.getElementById('extension-homebridge-response-data');
+        
+            const jwt = localStorage.getItem('jwt');
+        
+            
+    	    API.getThings().then((things) => {
+			    
+                things.sort((a, b) => (a.title.toLowerCase() > b.title.toLowerCase()) ? 1 : -1) // sort alphabetically
+                
+                document.getElementById('extension-homebridge-thing-list').innerHTML = "";
+                
+    			this.all_things = things;
+    			if(this.debug){
+                    console.log("homebridge: debug: all things: ", things);
+                }
+			    
+    			// pre-populate the hidden 'new' item with all the thing names
+    			var thing_ids = [];
+    			var thing_titles = [];
+			
+    			for (let key in things){
+
+                    if( things[key].hasOwnProperty('properties') ){ // things without properties should be skipped (edge case)
+                        
+        				var thing_title = 'unknown';
+        				if( things[key].hasOwnProperty('title') ){
+        					thing_title = things[key]['title'];
+        				}
+        				else if( things[key].hasOwnProperty('label') ){ // very old addons sometimes used label instead of title
+        					thing_title = things[key]['label'];
+        				}
+				
+        				
+        				
+			
+        				var thing_id = things[key]['href'].substr(things[key]['href'].lastIndexOf('/') + 1);
+                        //console.log("thing_id: ", thing_id);
+                        
+                        if(thing_id == 'homebridge-thing'){
+                            //console.log("FOUND IT homebridge-thing");
+                            continue;
+                        }
+                        
+                        if (thing_id.startsWith('highlights-') ){
+    						//console.log(thing_id + " starts with highlight-, so skipping.");
+    						continue;
+                        }
+                        
+                        //console.log("thing_title and ID: ", thing_title, thing_id);
+        				//thing_ids.push( things[key]['href'].substr(things[key]['href'].lastIndexOf('/') + 1) );
+                        
+
+                        // item
+                        var thing_container = document.createElement('div');
+                        thing_container.classList.add('extension-homebridge-thing');
+                        thing_container.dataset.thing_id = thing_id;
+                    
+                        // checkbox
+                        var thing_checkbox = document.createElement('input');
+                        thing_checkbox.type = "checkbox";
+                        thing_checkbox.name = 'extension-homebridge-' + thing_id;
+                        thing_checkbox.id = 'extension-homebridge-' + thing_id;
+                        thing_checkbox.dataset.thing_id = thing_id;
+                        thing_checkbox.classList.add('extension-homebridge-thing-checkbox');
+                    
+                        // label
+                        var thing_label = document.createElement('label');
+                        thing_label.htmlFor = 'extension-homebridge-' + thing_id;
+                        //label.appendChild(checkbox);
+                        thing_label.appendChild(document.createTextNode(thing_title));
+                        
+                        // select
+                        var select_el = document.createElement('select');
+                        select_el.classList.add('extension-homebridge-thing-select');
+                        select_el.classList.add('localization-select');
+                        var selected_type = "";
+                        var options_count = 0;
+                        if(this.selected_things.length > 0){
+                            
+                            // Set checkbox to checked
+                            for(let s=0;s<this.selected_things.length;s++){
+                            
+                                if(this.selected_things[s]['thing_id'] == thing_id){
+                                    console.log("setting checkbox checked for: ", thing_id);
+                                    thing_checkbox.checked = true;
+                                    
+                                    // Add type dropdown
+                                    if( typeof this.selected_things[s]['selected_type'] != 'undefined'){
+                                        console.log("selected_type was not undefined");
+                                        if(this.selected_things[s]['selected_type'] != ""){
+                                            selected_type = this.selected_things[s]['selected_type'];
+                                            console.log("selected type was already set in selected_things:", selected_type);
+                                        }
+                                    }
+                                    else{
+                                        console.log("selected_type as undefined");
+                                    }
+                                    
+                                }
+                            }
+                        }
+                                    
+                        if(selected_type == ""){
+                            //console.log("selected_type is still empty string");
+                        }
+                                    
+                        if(typeof things[key]['@type'] != 'undefined'){
+                            if(things[key]['@type'].length > 0){
+                                //console.log("there is at least one thing capability available");
+
+                                for(let a=0;a<things[key]['@type'].length;a++){
+                                    options_count++;
+
+                                    //var option_el = new Option(things[key]['@type'][a], things[key]['@type'][a]);
+
+                                    let option_el = document.createElement('option');
+                                        option_el.value = things[key]['@type'][a];
+                                        option_el.innerHTML = things[key]['@type'][a];
+
+                                    if(typeof things[key]['selectedCapability'] != 'undefined'){
+                                        if(things[key]['selectedCapability'].length > 0){
+                                            if(things[key]['@type'][a] == things[key]['selectedCapability']){
+                                                console.log("this is the thing's selectedCapability: ", things[key]['selectedCapability']);
+                                                if(selected_type == ""){
+                                                    console.log("setting selected capability to selected option:", things[key]['selectedCapability']);
+                                                    option_el.selected = true;
+                                                }
+                                            }
+                                        }
+
+                                    }
+                                    select_el.appendChild(option_el);
+                                }
+                            }
+                            else{
+                                console.warn("@type length was zero for: ", things[key]['title']);
+                            }
+                        }
+                        else{
+                            console.warn("no @type defined");
+                        }
+                        //const type_options = this.find_accessory(thing_id,selected_type);
+                        
+                        if(options_count > 0){
+                            // Append parts to item
+                            thing_container.appendChild(thing_checkbox);
+                            thing_container.appendChild(thing_label);
+                            
+                            thing_container.appendChild(select_el);
+                            /*
+                            if(options_count > 1){
+                                thing_container.appendChild(select_el);
+                            }
+                            else{
+                                let span_el = document.createElement("span");
+                                span_el.classList.add('extension-homebridge-thing-one-option');
+                                span_el.innerHTML = "(only one option)";
+                                thing_container.appendChild(span_el);
+                            }
+                            */
+
+                            //thing_container.appendChild(properties_container);
+
+                            // Append item to the dom
+                            document.getElementById('extension-homebridge-thing-list').appendChild(thing_container);
+                        }
+                        
+                    }
+                }
+            });
+        
+    	}
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+        // FIND ACCESSORY
+        // A helper method to find the most optimal/likely Homekit accessory types
+ 
+        find_accessory(thing_id,selected_type){
+            
+            // accessory mapping of minimally required properties/services
+            /*
+            const ac_map = {"light":{"required":"on_off","optional":"brightness"},
+                            "switch"{"required":"on_off"},
+            }
+            */
+            
+            for(let i=0;i<this.all_things.length;i++){
+                if(this.all_things[i]['href'].endsWith("/" + thing_id)){
+                    console.log("found the thing: ", this.all_things[i]);
+                    console.log("it has x properties: ", Object.keys(this.all_things[i]['properties']).length);
+                    
+                    
+                    // Create a lookup dictionary of all available properties and their @types
+                    for(let j=0;j<Object.keys(this.all_things[i]['properties']).length;j++){
+                        let key_id = Object.keys(this.all_things[i]['properties'])[j];
+                        console.log("prop: ", this.all_things[i]['properties'][key_id]);
+                        if( typeof this.all_things[i]['properties'][key_id]['@type'] != 'undefined'){
+                            console.log("property @type: ", this.all_things[i]['properties'][key_id]['@type']);
+                        }
+                    }
+                    
+                    let optimal_types = [];
+                    if(typeof this.all_things[i]['@type'] != "undefined"){
+                        for(let h=0;h<this.all_things[i]['@type'].length;h++){
+                            console.log("looping over @types: ", this.all_things[i]['@type'][h]);
+                        }
+                    }
+                    if(selected_type == ""){
+                        console.log("selected type was empty string");
+                        if(typeof this.all_things[i]["selectedCapability"] != 'undefined'){
+                            if(this.all_things[i]["selectedCapability"].length > 0){
+                                let selected_capability = this.all_things[i]["selectedCapability"];
+                                if(selected_capability == 'Light'){
+                                    console.log("it's set to be a lightbulb");
+                                    // find property by capability
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+ 
+ 
+ 
+ 
+ 
+ 
+    	//
+    	//  A helper method that generates nice lists of properties from a Gateway property dictionary
+    	//
+    	get_property_lists(properties){
+    		var property1_list = []; // list of user friendly titles
+    		var property1_system_list = []; // list internal property id's
+    		var property2_list = [];
+    		var property2_system_list = [];
+		
+    		for (let prop in properties){
+    			var title = 'unknown';
+    			if( properties[prop].hasOwnProperty('title') ){
+    				title = properties[prop]['title'];
+    			}
+    			else if( properties[prop].hasOwnProperty('label') ){
+    				title = properties[prop]['label'];
+    			}
+                //console.log(title);
+            
+                var system_title = null;
+                try{
+                    var links_source = null;
+                    if( typeof properties[prop]['forms'] != 'undefined'){
+                        if(properties[prop]['forms'].length > 0){
+                            //console.log('valid href source in forms object');
+                            links_source = 'forms';
+                            //system_title = properties[prop]['forms'][0]['href'].substr(properties[prop]['forms'][0]['href'].lastIndexOf('/') + 1);
+                        }
+                        else{
+                            //console.log("forms existed, but was empty");
+                        }
+                    }
+                
+                    if( links_source == null && typeof properties[prop]['links'] != 'undefined'){
+                        if(properties[prop]['links'].length > 0){
+                            //console.log('valid href source in links object');
+                            links_source = 'links';
+                        }
+                        else{
+                            //console.log("links existed, but was empty");
+                        }
+                    }
+                    //console.log("final links_source: " + links_source);
+                
+                    if(links_source != null){
+                        system_title = properties[prop][links_source][0]['href'].substr(properties[prop][links_source][0]['href'].lastIndexOf('/') + 1);
+                    }else{
+                        //console.log('Error, no valid links source found?');
+                    }
+                
+                    //console.log('final system_title: ' + system_title);
+                }
+                catch(e){
+                    //console.log("forms/links error: " + e);
+                }
+            
+			
+    			// If a property is a number, add it to the list of possible source properties
+    			if( properties[prop]['type'] == 'integer' || properties[prop]['type'] == 'float' || properties[prop]['type'] == 'number'){
+				
+    				property1_list.push(title);
+    				property1_system_list.push(system_title);
+				
+    				// If a property is not read-only, then it can be added to the list of 'target' properties that can be changed based on a 'source' property
+    				if ( 'readOnly' in properties[prop] ) { // If readOnly is set, it could still be set to 'false'.
+    					if(properties[prop]['readOnly'] == false){
+    						property2_list.push(title);
+    						property2_system_list.push(system_title);
+    					}
+    				}
+    				else{ // If readOnly is not set, we can asume the property is not readOnly.
+    					property2_list.push(title);
+    					property2_system_list.push(system_title);
+    				}
+    			}
+    		}
+		
+    		// Sort lists alphabetically.
+    		/*
+    		property1_list.sort();
+    		property1_system_list.sort();
+    		property2_list.sort();
+    		property2_system_list.sort();
+    		*/
+		
+    		return { 'property1_list' : property1_list, 'property1_system_list' : property1_system_list, 'property2_list' : property2_list,'property2_system_list' : property2_system_list };
+    	}
+ 
+ 
+ 
+ 
+ 
+        show_pairing(){
+            
+	  		// Get_pin
+	        window.API.postJson(
+	          `/extensions/${this.id}/api/ajax`,
+                {'action':'pair'}
+
+	        ).then((body) => {
+                if(this.debug){
+                    console.log("pair response: ", body);
+                }
+                if(typeof body.code != 'undefined'){
+                    if(body.state == true){
+                        
+                        // Generate QR code
+                        //console.log("generating QR code");
+                        const target_element = document.getElementById('extension-homebridge-pairing-qr-code');
+                        target_element.innerHTML = "";
+                	    var qrcode = new QRCode(target_element, {
+                		    width : 300,
+                		    height : 300
+                	    });
+                	    qrcode.makeCode(body.code);
+                        
+                        let pin_string = body.pin.toString();
+                        
+                        let formatted_pin = pin_string;
+                        if(pin_string.length == 8){
+                            formatted_pin = pin_string.substring(0,2) + " - " + pin_string.substring(3,4); + " - " + pin_string.substring(5,7); 
+                        }
+                        
+                        // Show pin code under the QR code
+                        document.getElementById('extension-homebridge-pairing-code').innerText = formatted_pin;
+                        
+                    }
+                    else{
+                        alert("One moment, Homebridge is not ready yet");
+                    }
+                    
+                }
+			
+	        }).catch((e) => {
+	  			console.log("Error getting pairing code or generating QR code: ", e);
+	        });	
+        }
  
     
     }

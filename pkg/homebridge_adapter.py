@@ -83,7 +83,6 @@ class HomebridgeAdapter(Adapter):
         self.ready = False # set this to True once the init process is complete.
         self.addon_name = 'homebridge'
         
-        
         self.name = self.__class__.__name__ # TODO: is this needed?
         Adapter.__init__(self, self.addon_name, self.addon_name, verbose=verbose)
 
@@ -197,6 +196,11 @@ class HomebridgeAdapter(Adapter):
         if 'dropdown' not in self.persistent_data:
             self.persistent_data['dropdown'] = 'Auto'
 
+        if 'token' not in self.persistent_data:
+            self.persistent_data['token'] = "No token provided yet"
+
+        if 'things' not in self.persistent_data:
+            self.persistent_data['things'] = []
 
 
         # create list of installed plugins
@@ -302,6 +306,8 @@ class HomebridgeAdapter(Adapter):
 
         except Exception as ex:
             print("Error in add_from_config: " + str(ex))
+
+
 
 
 
@@ -452,6 +458,20 @@ class HomebridgeAdapter(Adapter):
                     self.hb_config_data["bridge"]["name"] = "Candle " + str(self.hb_config_data["bridge"]["name"])
                     made_modifications = True
                     
+                try:
+                    for accessory in self.hb_config_data["accessories"]:
+                        if self.DEBUG:
+                            print("run_hb: accessory: " + str(accessory))
+                        thing_still_shared = False
+                        for thing in self.persistent_data['things']:
+                            if self.DEBUG:
+                                print("run_hb: thing to modify or add: " + str(thing))
+                                print( str(self.persistent_data['things'][thing] ))
+                
+                except Exception as ex:
+                    if self.DEBUG:
+                        print("Error modifying config file: " + str(ex))
+                    
             if made_modifications is True:
                 if self.DEBUG:
                     print("Saving modified config file")
@@ -539,7 +559,7 @@ class HomebridgeAdapter(Adapter):
 
 
 
-
+    # not used anymore in favour of reading the log file instead
     def parse_hb(self,line):
         if self.DEBUG:
             print("parse_hb got line: " + str(line))
@@ -558,13 +578,19 @@ class HomebridgeAdapter(Adapter):
             print("plugin directories in node_modules: " + str(files))
         for file_name in files:
             print(str(file_name))
-            if os.path.isdir(os.path.join(self.hb_plugins_path,file_name)):
+            file_path = os.path.join(self.hb_plugins_path,file_name)
+            if os.path.isdir(file_path):
                 if self.DEBUG:
-                    print("is dir: " + str(file_name))
+                    print("is dir: " + str(file_path))
                 if file_name.startswith(".") or file_name == 'homebridge':
                     if self.DEBUG:
                         print("spotted hidden or homebridge node module, should ignore this")
                     continue
+                    
+                #dir_size = os.path.getsize(file_path)
+                #if self.DEBUG:
+                #    print("dir_size:",dir_size)
+                    
                 #if file_name.startswith("homebridge") and file_name.endswith('.deb'):
                 self.plugins_list.append({'name':file_name,'value':1})
 
@@ -987,8 +1013,6 @@ class HomebridgeAPIHandler(APIHandler):
             if request.path == '/ajax': # you could have all kinds of paths. In this example we only use this one, and use the 'action' variable to denote what we want to api handler to do
 
                 try:
-                    
-                    
                     action = str(request.body['action']) 
                     
                     if self.DEBUG:
@@ -1028,10 +1052,66 @@ class HomebridgeAPIHandler(APIHandler):
                                       'hb_name':hb_name,
                                       'config_ip':self.adapter.ip,
                                       'hostname':self.adapter.hostname,
+                                      'things':self.adapter.persistent_data['things'],
                                       'debug':self.adapter.DEBUG
                                       }),
                         )
                 
+                    
+                    
+                    elif action == 'save_token':
+                        if self.DEBUG:
+                            print("API: in save_token")
+                        
+                        state = False
+                        
+                        try:
+                            self.adapter.persistent_data['token'] = str(request.body['token'])
+                            self.adapter.save_persistent_data()
+                            if self.DEBUG:
+                                print("saved token")
+                            state = True
+                            
+                        except Exception as ex:
+                            if self.DEBUG:
+                                print("Error saving token: " + str(ex))
+                        
+                        return APIResponse(
+                          status=200,
+                          content_type='application/json',
+                          content=json.dumps({'state' : state}),
+                        )
+                    
+                    
+                    
+                    elif action == 'save_things':
+                        if self.DEBUG:
+                            print("API: in save_things")
+                        
+                        state = False
+                        
+                        try:
+                            self.adapter.persistent_data['things'] = request.body['things']
+                            self.adapter.save_persistent_data()
+                            if self.DEBUG:
+                                print("saved new things list")
+                            state = True
+                            
+                            # restart Homebridge # TODO: make this less rough..
+                            os.system('pkill homebridge')
+                            
+                            
+                        except Exception as ex:
+                            if self.DEBUG:
+                                print("Error saving things: " + str(ex))
+                        
+                        return APIResponse(
+                          status=200,
+                          content_type='application/json',
+                          content=json.dumps({'state' : state}),
+                        )
+                    
+                    
                     
                     # GET_PIN
                     # We should avoid sending this over the network too often, hence this special action

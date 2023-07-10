@@ -33,6 +33,16 @@ extension-homebridge-
     color:white;
 }
 
+#extension-homebridge-view input[type=text]{
+    padding:.8rem 1.2rem;
+}
+
+#extension-homebridge-view .text-button{
+    font-size:1.5rem;
+    padding-left:2rem;
+    padding-right:2rem;
+}
+
 #extension-homebridge-content-container {
 	display:flex;
 	flex-direction: column;
@@ -146,7 +156,41 @@ extension-homebridge-
 }
 
 
-/*  LIST OF ITEMS */
+
+
+
+/*  LIST OF THINGS  */
+
+#extension-homebridge-thing-list{
+    display:flex;
+    flex-wrap:wrap;
+}
+.extension-homebridge-thing{
+    min-width: 10rem;
+    max-width: 50%;
+    width: calc(50% - 2rem);
+    margin-right:1rem;
+    margin-bottom:1rem;
+    border-radius:.5rem;
+}
+
+.extension-homebridge-thing label{
+    padding:1rem;
+    background-color:rgba(0,0,0,.1);
+    display: inline-block;
+}
+
+.extension-homebridge-thing select{
+    display: block;
+}
+
+.extension-homebridge-thing span{
+    font-style:italic;
+}
+
+
+
+/*  LIST OF PLUGINS */
 
 #extension-homebridge-main-items-list{
     margin-bottom:4rem;
@@ -172,6 +216,10 @@ extension-homebridge-
     flex-direction:column;
     justify-content:space-around;
     border-left:1px solid rgba(255,255,255,.1);
+}
+
+.extension-homebridge-item-value{
+    display:none;
 }
 
 /*  delete button */
