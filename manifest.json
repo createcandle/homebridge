@@ -7,6 +7,7 @@
         "css/extension.css"
       ],
       "js": [
+	"js/qrcode.js",
         "js/extension.js"
       ]
     }
@@ -44,9 +45,9 @@
   "web_accessible_resources": [
     "css/*.css",
     "images/*.svg",
-	"images/*.png",
-	"images/*.gif",
-	"images/*.jpg",
+    "images/*.png",
+    "images/*.gif",
+    "images/*.jpg",
     "js/*.js",
     "views/*.html"
   ]
