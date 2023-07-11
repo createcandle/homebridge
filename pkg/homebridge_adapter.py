@@ -116,6 +116,8 @@ class HomebridgeAdapter(Adapter):
 
         self.setup_id = ""
 
+        self.hb_process_pid = None
+
         # There is a very useful variable called "user_profile" that has useful values from the controller.
         print("self.user_profile: " + str(self.user_profile))
         
@@ -795,8 +797,9 @@ class HomebridgeAdapter(Adapter):
         # A final chance to save the data.
         self.save_persistent_data()
 
-
-        shell("sudo kill {}".format(self.hb_process_pid))
+        if self.hb_process_pid != None:
+            shell("sudo kill {}".format(self.hb_process_pid))
+        
         time.sleep(1)
         os.system('pkill hb-service')
 
