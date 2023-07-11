@@ -26,7 +26,7 @@
             ];
             
             
-            
+            /*
             API.getThings().then((things) => {
                 console.log('Homebridge:API: things: ', things);
             });
@@ -34,7 +34,7 @@
             API.getThing('energyuse').then((thing) => {
                 console.log('Homebridge:API: thing: ', thing);
             });
-            
+            */
             
             
             setTimeout(() => {
@@ -102,180 +102,188 @@
 				main_view.innerHTML = this.content;
 			}
             
-            // Save things button
-            document.getElementById('extension-homebridge-save-things-button').addEventListener('click', (event) => {
-                if(this.debug){
-                    console.log("Homebridge: save things button clicked");
-                }
+            console.log("creating buttons");
+            try{
+                // Save things button
+                document.getElementById('extension-homebridge-save-things-button').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("Homebridge: save things button clicked");
+                    }
                 
-                document.getElementById('extension-homebridge-save-things-button').classList.add('extension-homebridge-hidden');
-                setTimeout(() => {
-                    document.getElementById('extension-homebridge-save-things-button').classList.remove('extension-homebridge-hidden');
-                }, "3000");
+                    document.getElementById('extension-homebridge-save-things-button').classList.add('extension-homebridge-hidden');
+                    setTimeout(() => {
+                        document.getElementById('extension-homebridge-save-things-button').classList.remove('extension-homebridge-hidden');
+                    }, "3000");
                 
-                var selected_things = [];
+                    var selected_things = [];
                 
-                var all_thing_items = document.querySelectorAll('.extension-homebridge-thing');
-                //console.log('all_thing_items:', all_thing_items);
-                for(var i=0; i<all_thing_items.length; i++){
+                    var all_thing_items = document.querySelectorAll('.extension-homebridge-thing');
+                    //console.log('all_thing_items:', all_thing_items);
+                    for(var i=0; i<all_thing_items.length; i++){
                     
-                    // Get checkbox state
-                    let checkbox_el = all_thing_items[i].querySelector(".extension-homebridge-thing-checkbox");
-                    //console.log("selected_things[i].dataset.device_id: ", all_thing_items[i]['dataset']['thing_id']);
-                    //console.log("alt: ", all_thing_items[i].getAttribute('data-thing_id'));
-                    
-                    
+                        // Get checkbox state
+                        let checkbox_el = all_thing_items[i].querySelector(".extension-homebridge-thing-checkbox");
+                        //console.log("selected_things[i].dataset.device_id: ", all_thing_items[i]['dataset']['thing_id']);
+                        //console.log("alt: ", all_thing_items[i].getAttribute('data-thing_id'));
                     
                     
-                    // Get dropdown selection
-                    //let select_el = all_thing_items[i].querySelector(".extension-homebridge-thing-select");
                     
                     
-                    if(checkbox_el.checked){
-                        console.log("checked");
+                        // Get dropdown selection
+                        //let select_el = all_thing_items[i].querySelector(".extension-homebridge-thing-select");
+                    
+                    
+                        if(checkbox_el.checked){
+                            console.log("checked");
                         
-                        let thing_title = checkbox_el.getAttribute('data-thing_title');
+                            let thing_title = checkbox_el.getAttribute('data-thing_title');
                         
-                        let options_checkboxes = all_thing_items[i].querySelectorAll(".extension-homebridge-thing-options-checkbox:checked");
-                        for(var k=0; k<options_checkboxes.length; k++){
-                            console.log("checkbox: ", options_checkboxes[k]);
-                            let thing_id = options_checkboxes[k].getAttribute('data-thing_id');
-                            let accessory_type = options_checkboxes[k].getAttribute('data-accessory_type');
-                            let accessory_data = this.all_potentials[thing_id][accessory_type];
-                            console.log("accessory_data, thing_id, accessory_type: ", accessory_data, thing_id, accessory_type);
+                            let options_checkboxes = all_thing_items[i].querySelectorAll(".extension-homebridge-thing-options-checkbox:checked");
+                            for(var k=0; k<options_checkboxes.length; k++){
+                                console.log("checkbox: ", options_checkboxes[k]);
+                                let thing_id = options_checkboxes[k].getAttribute('data-thing_id');
+                                let accessory_type = options_checkboxes[k].getAttribute('data-accessory_type');
+                                let accessory_data = this.all_potentials[thing_id][accessory_type];
+                                console.log("accessory_data, thing_id, accessory_type: ", accessory_data, thing_id, accessory_type);
                             
-                            selected_things.push( {
-                                    "thing_id":thing_id,
-                                    "thing_title":thing_title,
-                                    //"accessory_type":accessory_type, // a little double
-                                    "accessory_data":accessory_data} 
-                                    );
+                                selected_things.push( {
+                                        "thing_id":thing_id,
+                                        "thing_title":thing_title,
+                                        //"accessory_type":accessory_type, // a little double
+                                        "accessory_data":accessory_data} 
+                                        );
+                            }
+                        
+                        
+                            //console.log("checked: ", all_thing_items[i].getAttribute('data-thing_id'));
+                        
                         }
-                        
-                        
-                        //console.log("checked: ", all_thing_items[i].getAttribute('data-thing_id'));
-                        
-                    }
-                    else{
-                        //console.log("not checked");
-                    }
+                        else{
+                            //console.log("not checked");
+                        }
                     
                     
-                }
-                console.log("selected_things: ", selected_things);
+                    }
+                    console.log("selected_things: ", selected_things);
                 
                 
-		  		// Save things
-		        window.API.postJson(
-		          `/extensions/${this.id}/api/ajax`,
-                    {'action':'save_things','things':selected_things}
+    		  		// Save things
+    		        window.API.postJson(
+    		          `/extensions/${this.id}/api/ajax`,
+                        {'action':'save_things','things':selected_things}
 
-		        ).then((body) => {
-                    if(this.debug){
-                        console.log('homebridge save_things response: ', body);
-                    }
-			
-		        }).catch((e) => {
-		  			console.log("Homebridge: error saving things list: ", e);
-		        });	
-                
-                
-            });
-            
-            
-            // ADD button press
-            /*
-            document.getElementById('extension-homebridge-add-item-button').addEventListener('click', (event) => {
-            	if(this.debug){
-                    console.log("first button clicked. Event: ", event);
-                }
-                
-                const new_name = document.getElementById('extension-homebridge-add-item-name').value;
-                const new_value = document.getElementById('extension-homebridge-add-item-value').value;
-                
-                if(new_name == ""){
-                    alert("Please provide a name");
-                    return;
-                }
-                    
-                // isNaN is short for "is not a number"
-                if(isNaN(new_value)){
-                    alert("Please provide a valid number");
-                    return;
-                }
-                
-                // If we end up here, then a name and number were present in the input fields. We can now ask the backend to save the new item.
-				window.API.postJson(
-					`/extensions/${this.id}/api/ajax`,
-					{'action':'add', 'name':new_name  ,'value':new_value}
-                    
-				).then((body) => {
-                    if(this.debug){
-                        console.log("add item response: ", body);
-                    }
-                    if(body.state == true){
-                        document.getElementById('extension-homebridge-add-item-name').value = "";
-                        document.getElementById('extension-homebridge-add-item-value').value = null;
-                    }
-                    else{
+    		        ).then((body) => {
                         if(this.debug){
-                            console.log("saving new item failed!");
+                            console.log('homebridge save_things response: ', body);
                         }
-                        alert("sorry, saving new item failed.");
+			
+    		        }).catch((e) => {
+    		  			console.log("Homebridge: error saving things list: ", e);
+    		        });	
+                
+                
+                });
+            
+            
+                // ADD button press
+                /*
+                document.getElementById('extension-homebridge-add-item-button').addEventListener('click', (event) => {
+                	if(this.debug){
+                        console.log("first button clicked. Event: ", event);
+                    }
+                
+                    const new_name = document.getElementById('extension-homebridge-add-item-name').value;
+                    const new_value = document.getElementById('extension-homebridge-add-item-value').value;
+                
+                    if(new_name == ""){
+                        alert("Please provide a name");
+                        return;
                     }
                     
-				}).catch((e) => {
-					console.log("homebridge: connnection error after add new item button press: ", e);
-                    alert("failed to add new item: connection error");
-				});
-            
-            });
-            */
-            
-            // Easter egg when clicking on the title
-			document.getElementById('extension-homebridge-title').addEventListener('click', (event) => {
-                this.show();
-			});
-            
-            
-            // SEARCH BUTTON
-            document.getElementById('extension-homebridge-search-button').addEventListener('click', (event) => {
-                if(this.debug){
-                    console.log("clicked on search button");
-                }
-                this.search();
-			});
-            
-            
-            // Button to show the second page
-            document.getElementById('extension-homebridge-show-second-page-button').addEventListener('click', (event) => {
-                if(this.debug){
-                    console.log("clicked on + button");
-                }
-                document.getElementById('extension-homebridge-content-container').classList.add('extension-homebridge-showing-second-page');
+                    // isNaN is short for "is not a number"
+                    if(isNaN(new_value)){
+                        alert("Please provide a valid number");
+                        return;
+                    }
                 
-                // iPhones need this fix to make the back button lay on top of the main menu button
-                document.getElementById('extension-homebridge-view').style.zIndex = '3';
-			});
+                    // If we end up here, then a name and number were present in the input fields. We can now ask the backend to save the new item.
+    				window.API.postJson(
+    					`/extensions/${this.id}/api/ajax`,
+    					{'action':'add', 'name':new_name  ,'value':new_value}
+                    
+    				).then((body) => {
+                        if(this.debug){
+                            console.log("add item response: ", body);
+                        }
+                        if(body.state == true){
+                            document.getElementById('extension-homebridge-add-item-name').value = "";
+                            document.getElementById('extension-homebridge-add-item-value').value = null;
+                        }
+                        else{
+                            if(this.debug){
+                                console.log("saving new item failed!");
+                            }
+                            alert("sorry, saving new item failed.");
+                        }
+                    
+    				}).catch((e) => {
+    					console.log("homebridge: connnection error after add new item button press: ", e);
+                        alert("failed to add new item: connection error");
+    				});
+            
+                });
+                */
+            
+                // Easter egg when clicking on the title
+    			document.getElementById('extension-homebridge-title').addEventListener('click', (event) => {
+                    this.show();
+    			});
             
             
+                // SEARCH BUTTON
+                document.getElementById('extension-homebridge-search-button').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("clicked on search button");
+                    }
+                    this.search();
+    			});
             
-            // Back button, shows main page
-            document.getElementById('extension-homebridge-back-button-container').addEventListener('click', (event) => {
-                if(this.debug){
-                    console.log("clicked on back button");
-                }
-                document.getElementById('extension-homebridge-content-container').classList.remove('extension-homebridge-showing-second-page');
+            
+                // Button to show the second page
+                /*
+                document.getElementById('extension-homebridge-show-second-page-button').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("clicked on + button");
+                    }
+                    document.getElementById('extension-homebridge-content-container').classList.add('extension-homebridge-showing-second-page');
                 
-                // Undo the iphone fix, so that the main menu button is clickable again
-                document.getElementById('extension-homebridge-view').style.zIndex = 'auto';
+                    // iPhones need this fix to make the back button lay on top of the main menu button
+                    document.getElementById('extension-homebridge-view').style.zIndex = '3';
+    			});
+                */
                 
-                this.get_init_data(); // repopulate the main page 
-			});
-            
+                // Back button, shows main page
+                document.getElementById('extension-homebridge-back-button-container').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("clicked on back button");
+                    }
+                    document.getElementById('extension-homebridge-content-container').classList.remove('extension-homebridge-showing-second-page');
+                
+                    // Undo the iphone fix, so that the main menu button is clickable again
+                    document.getElementById('extension-homebridge-view').style.zIndex = 'auto';
+                
+                    this.get_init_data(); // repopulate the main page 
+    			});
+                
+            }
+            catch (e){
+                console.error('Homebridge: error making buttons: ', e);
+            }
             
             // Scroll the content container to the top
             document.getElementById('extension-homebridge-view').scrollTop = 0;
+            
+            console.log("show: calling get_init_data");
             
             // Finally, request the first data from the addon's API
             this.get_init_data();
@@ -287,6 +295,7 @@
 				//console.log("no interval to clear? " + e);
 			}
             this.interval = setInterval( () => {
+                console.log("5 seconds passed");
                 this.get_init_data();
             },5000);
          
@@ -511,11 +520,13 @@
     				console.log("Homebridge: error in API call to init: ", e);
     			}
                 
+                document.getElementById("extension-homebridge-disconnected-hint").classList.add("extension-homebridge-hidden");
             }
             else{
                 if(this.debug){
                     console.warn("Homebridge addon API not responding? this.response_error_count: ", this.response_error_count);
                 }
+                document.getElementById("extension-homebridge-disconnected-hint").classList.remove("extension-homebridge-hidden");
             }
 			
         }
@@ -1117,6 +1128,38 @@
                             "config_names":["getCurrentRelativeHumidity"],
                             "required_unit":"percentage",
                             "required_variable":"integer",
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"thermostat",
+                    "webthings_type":["Thermostat"],
+                    "preference_score":100,
+                    "required":
+                    [
+                        {
+                            "property_name":"mode",
+                            "config_names":["getCurrentHeatingCoolingState"],
+                            "required_variable":"enum",
+                            "extra_attributes":{"heatingCoolingStateValues":["off","heat","off","off"]}
+                        },
+                        {
+                            "property_at_type":"TargetTemperatureProperty",
+                            "property_name":"setpoint",
+                            "config_names":["getTargetTemperature","setTargetTemperature"]
+                        },
+                        {
+                            "property_at_type":"HeatingCoolingProperty",
+                            "property_name":"running state",
+                            "config_names":["getTargetHeatingCoolingState","setTargetHeatingCoolingState"],
+                            "extra_attributes":{"restrictHeatingCoolingState":["off","heating"]}
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_name":"unit",
+                            "required_variable":"strings",
+                            "config_names":["getTemperatureDisplayUnits","setTemperatureDisplayUnits"]
                         }
                     ]
                 },

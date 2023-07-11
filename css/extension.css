@@ -100,7 +100,6 @@ extension-homebridge-
     font-weight:bold;
 }
 
-/* In this example we hide the second page based on a CSS class that is added or removed from the content container div */
 #extension-homebridge-second-page{
     display:none;
 }
@@ -115,20 +114,20 @@ extension-homebridge-
 
 
 
-.extension-homebridge-centered-page{ /*  Creates a centered area inside each page/tab */
+.extension-homebridge-centered-page{
     max-width:60rem;
     margin:0 auto;
 }
 
 
-.extension-homebridge-area{ /* A small area inside a page with a slightly darker background */
+.extension-homebridge-area{
     background-color:rgba(0,0,0,.1);
     border-radius:.5rem;
     padding:2rem;
     margin:4rem 0;
 }
 
-.extension-homebridge-hidden{ /* It's best to add this class to something you want to hide instead of doing .style.display = 'none' though javascript */
+.extension-homebridge-hidden{
     display:none;
 }
 
@@ -499,8 +498,18 @@ extension-homebridge-
 }
 
 
-@media screen and (min-width: 1025px) {
-	
+@media screen and (min-width: 1200px) {
+    .extension-homebridge-centered-page{
+        max-width:80rem;
+    }
+    .extension-homebridge-thing{
+        padding:1.5rem;
+        box-sizing:border-box;
+    }
+    
+    .extension-homebridge-area{
+        padding:4rem;
+    }
 }
 
 

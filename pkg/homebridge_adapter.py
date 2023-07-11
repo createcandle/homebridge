@@ -136,6 +136,7 @@ class HomebridgeAdapter(Adapter):
         self.hb_service_path = os.path.join(self.hb_path, "opt","homebridge","lib","node_modules","homebridge-config-ui-x","dist/bin/hb-service.js")
         self.hb_storage_path = os.path.join(self.hb_path, "var","lib","homebridge") # TODO: just make this the data root path for optimal backup support?
         self.hb_plugins_path = os.path.join(self.hb_storage_path, "node_modules") 
+        self.hb_webthings_plugin_path = os.path.join(self.hb_plugins_path, "homebridge-webthings") 
         self.hb_logs_file_path = os.path.join(self.hb_storage_path, "homebridge.log") 
         self.hb_config_file_path = os.path.join(self.hb_storage_path, "config.json") 
         
@@ -220,18 +221,19 @@ class HomebridgeAdapter(Adapter):
 
         # Create the thing
         try:
+            pass
             # Create the device object
-            homebridge_device = HomebridgeDevice(self)
+            #homebridge_device = HomebridgeDevice(self)
             
             # Tell the controller about the new device that was created. This will add the new device to self.devices too
-            self.handle_device_added(homebridge_device)
+            #self.handle_device_added(homebridge_device)
             
-            if self.DEBUG:
-                print("homebridge_device created")
+            #if self.DEBUG:
+            #    print("homebridge_device created")
                 
             # You can set the device to connected or disconnected. If it's in disconnected state the thing will visually be a bit more transparent.
-            self.devices['homebridge-thing'].connected = True
-            self.devices['homebridge-thing'].connected_notify(True)
+            #self.devices['homebridge-thing'].connected = True
+            #self.devices['homebridge-thing'].connected_notify(True)
 
         except Exception as ex:
             print("Could not create homebridge_device: " + str(ex))
@@ -403,6 +405,13 @@ class HomebridgeAdapter(Adapter):
             # Check if homebridge is fully installed
             if os.path.isfile(self.hb_service_path):
                 print("Homebridge installed succesfully")
+
+                print("Installing homebridge-webthings Node module")
+                p = subprocess.Popen([self.adapter.hb_npm_path,"install","--save","git+https://github.com/createcandle/homebridge-webthings.git"], cwd=self.adapter.hb_plugins_path)
+                p.wait()
+        
+                self.adapter.update_installed_plugins_list()
+                
                 self.hb_installed = True
                 self.hb_install_progress = 100
                 
@@ -430,6 +439,10 @@ class HomebridgeAdapter(Adapter):
         os.system('pkill hb-service')
         time.sleep(1)
         
+        if not os.path.isdir(self.hb_webthings_plugin_path):
+            print("Error, the Homebridge-webthings module seems to be missing")
+            self.send_pairing_prompt( "Error, Homebridge Webthings module is missing" )
+            
         # Update the config file
         if not os.path.isfile(self.hb_config_file_path):
             print("Error, Homebridge configuration file does not exist")
@@ -521,7 +534,10 @@ class HomebridgeAdapter(Adapter):
                                 
                         for extra in ac['accessory_data']['extras']:
                             print("TODO: extra: " + str(extra))
-                            #new_ac
+                            for k, v in extra.items():
+                                if self.DEBUG:
+                                    print("setting extra: " + str(k) + " -> " + str(v))
+                                new_ac[k] = v
                         
                         #print("new_ac: " + str(new_ac))
                         self.hb_config_data["accessories"].append(new_ac)
