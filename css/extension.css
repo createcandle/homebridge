@@ -166,27 +166,84 @@ extension-homebridge-
     flex-wrap:wrap;
 }
 .extension-homebridge-thing{
-    min-width: 10rem;
-    max-width: 50%;
-    width: calc(50% - 2rem);
-    margin-right:1rem;
-    margin-bottom:1rem;
+    width:100%;
+    margin-bottom:2rem;
     border-radius:.5rem;
+    background-color:rgba(0,0,0,.1);
+    padding-top: 0.5rem;
 }
 
 .extension-homebridge-thing label{
     padding:1rem;
-    background-color:rgba(0,0,0,.1);
     display: inline-block;
+    width: calc(100% - 5.5rem);
 }
 
+.extension-homebridge-thing-checkbox + label{
+    font-weight:bold;
+}
+
+/*
 .extension-homebridge-thing select{
     display: block;
+    width: calc(100% - 5.5rem);
+    margin-top: 0;
+    margin-left: 4.5rem;
+}
+*/
+
+.extension-homebridge-thing label span{
+    display:inline-block;
+    max-width:calc(100% - 5.5rem);
 }
 
-.extension-homebridge-thing span{
+.extension-homebridge-thing input[type=checkbox]{
+    position: absolute;
+    left: -1000em;
+}
+
+
+
+.extension-homebridge-thing input[type=checkbox] + label::before {
+    content: '';
+    display: inline-block;
+    width: 3rem;
+    height: 3rem;
+    float: right;
+    margin-top: -0.25rem;
+    background: url(/images/checkbox-sprite.png) no-repeat 0 0;
+    background-size: 3rem auto;
+    float: none;
+    vertical-align: top;
+    margin-right: 1rem;
+}
+
+.extension-homebridge-thing input[type=checkbox]:checked + label::before {
+    background-position: 0 -3rem;
+}
+
+
+.extension-homebridge-thing-options{
+    display:none;
+    padding-left:4rem;
+    padding-bottom:1rem;
+    box-sizing:border-box;
+}
+
+.extension-homebridge-thing input[type=checkbox]:checked + label + .extension-homebridge-thing-options{
+    display:block;
+}
+
+.extension-homebridge-thing-options-hint{
+    padding-left:1rem;
     font-style:italic;
 }
+
+
+#extension-homebridge-view #extension-homebridge-save-things-button{
+    font-size:2rem;
+}
+
 
 
 
@@ -425,6 +482,19 @@ extension-homebridge-
     .extension-homebridge-item{
         display:flex;
         justify-content:space-between;
+    }
+    
+    .extension-homebridge-thing{
+        min-width: 10rem;
+        max-width: 50%;
+    }
+    .extension-homebridge-thing:nth-child(odd) {
+        margin-right:1rem;
+        width:calc(50% - 1rem);
+    }
+    .extension-homebridge-thing:nth-child(even) {
+        margin-left:1rem;
+        width:calc(50% - 1rem);
     }
 }
 

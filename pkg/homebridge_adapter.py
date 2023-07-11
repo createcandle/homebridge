@@ -421,6 +421,10 @@ class HomebridgeAdapter(Adapter):
 
 
 
+
+
+
+
     def run_hb(self):
         print("IN RUN_HB")
         os.system('pkill hb-service')
@@ -459,14 +463,15 @@ class HomebridgeAdapter(Adapter):
                     made_modifications = True
                     
                 try:
-                    for accessory in self.hb_config_data["accessories"]:
+                    for index,accessory in enumerate(reversed(self.hb_config_data["accessories"])):
                         if self.DEBUG:
-                            print("run_hb: accessory: " + str(accessory))
+                            print("run_hb: accessory #" + str(index))
+                            print(json.dumps(accessory, indent=4, sort_keys=True))
                         thing_still_shared = False
                         for thing in self.persistent_data['things']:
                             if self.DEBUG:
                                 print("run_hb: thing to modify or add: " + str(thing))
-                                print( str(self.persistent_data['things'][thing] ))
+                                #print( str(self.persistent_data['things'][thing] ))
                 
                 except Exception as ex:
                     if self.DEBUG:
@@ -496,6 +501,10 @@ class HomebridgeAdapter(Adapter):
         except:
             if self.DEBUG:
                 print("Error starting the homebridge thread")
+
+
+
+
 
 
     def really_run_hb(self):
@@ -551,8 +560,8 @@ class HomebridgeAdapter(Adapter):
                     else:
                         #print(f"STDERR: {line}", end="", file=sys.stderr)
                         self.parse_hb(f"{line}")
-                time.sleep(0.02)
-                    
+                time.sleep(0.1)
+            
                     
         if self.DEBUG:
             print("BEYOND HOMEBRIDGE LOOP")

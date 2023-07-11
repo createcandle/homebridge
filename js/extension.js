@@ -7,7 +7,11 @@
             this.response_error_count = 0;
             
             this.all_things = [];
-            this.selected_things = [];
+            this.selected_things = null;
+            this.things_generated_once = false;
+            
+            this.properties_to_ignore = ["linkquality","data_transmission","data_blur","power_outage_memory"];
+            this.all_potentials = {};
             
             // We'll try and get this data from the addon backend
             this.a_number_setting = null;
@@ -20,6 +24,17 @@
               'homebridge-to-hoobs',
               'homebridge-server',
             ];
+            
+            
+            
+            API.getThings().then((things) => {
+                console.log('Homebridge:API: things: ', things);
+            });
+      
+            API.getThing('energyuse').then((thing) => {
+                console.log('Homebridge:API: thing: ', thing);
+            });
+            
             
             
             setTimeout(() => {
@@ -75,7 +90,7 @@
             }
 			//console.log("this.content:");
 			//console.log(this.content);
-            
+            console.log("HOMEBRIDGE SHOW");
             
 			const main_view = document.getElementById('extension-homebridge-view');
 			
@@ -93,25 +108,64 @@
                     console.log("Homebridge: save things button clicked");
                 }
                 
+                document.getElementById('extension-homebridge-save-things-button').classList.add('extension-homebridge-hidden');
+                setTimeout(() => {
+                    document.getElementById('extension-homebridge-save-things-button').classList.remove('extension-homebridge-hidden');
+                }, "3000");
+                
                 var selected_things = [];
                 
-                var all_thing_checkboxes = document.querySelectorAll('.extension-homebridge-edit-item-thing-checkbox');
-                //console.log('all_thing_checkboxes:', all_thing_checkboxes);
-                for(var i=0; i<all_thing_checkboxes.length; i++){
-                    //console.log("selected_things[i].dataset.device_id: ", all_thing_checkboxes[i]['dataset']['thing_id']);
-                    //console.log("alt: ", all_thing_checkboxes[i].getAttribute('data-thing_id'));
-                    if(all_thing_checkboxes[i].checked){
-                        //console.log("checked: ", all_thing_checkboxes[i].getAttribute('data-thing_id'));
-                        selected_things.push( {"thing_id":all_thing_checkboxes[i].getAttribute('data-thing_id')} );
+                var all_thing_items = document.querySelectorAll('.extension-homebridge-thing');
+                //console.log('all_thing_items:', all_thing_items);
+                for(var i=0; i<all_thing_items.length; i++){
+                    
+                    // Get checkbox state
+                    let checkbox_el = all_thing_items[i].querySelector(".extension-homebridge-thing-checkbox");
+                    //console.log("selected_things[i].dataset.device_id: ", all_thing_items[i]['dataset']['thing_id']);
+                    //console.log("alt: ", all_thing_items[i].getAttribute('data-thing_id'));
+                    
+                    
+                    
+                    
+                    // Get dropdown selection
+                    //let select_el = all_thing_items[i].querySelector(".extension-homebridge-thing-select");
+                    
+                    
+                    if(checkbox_el.checked){
+                        console.log("checked");
+                        
+                        let thing_title = checkbox_el.getAttribute('data-thing_title');
+                        
+                        let options_checkboxes = all_thing_items[i].querySelectorAll(".extension-homebridge-thing-options-checkbox:checked");
+                        for(var k=0; k<options_checkboxes.length; k++){
+                            console.log("checkbox: ", options_checkboxes[k]);
+                            let thing_id = options_checkboxes[k].getAttribute('data-thing_id');
+                            let accessory_type = options_checkboxes[k].getAttribute('data-accessory_type');
+                            let accessory_data = this.all_potentials[thing_id][accessory_type];
+                            console.log("accessory_data, thing_id, accessory_type: ", accessory_data, thing_id, accessory_type);
+                            
+                            selected_things.push( {
+                                    "thing_id":thing_id,
+                                    "thing_title":thing_title,
+                                    //"accessory_type":accessory_type, // a little double
+                                    "accessory_data":accessory_data} 
+                                    );
+                        }
+                        
+                        
+                        //console.log("checked: ", all_thing_items[i].getAttribute('data-thing_id'));
+                        
                     }
                     else{
                         //console.log("not checked");
                     }
+                    
+                    
                 }
                 console.log("selected_things: ", selected_things);
                 
                 
-		  		// Init
+		  		// Save things
 		        window.API.postJson(
 		          `/extensions/${this.id}/api/ajax`,
                     {'action':'save_things','things':selected_things}
@@ -124,6 +178,7 @@
 		        }).catch((e) => {
 		  			console.log("Homebridge: error saving things list: ", e);
 		        });	
+                
                 
             });
             
@@ -194,7 +249,9 @@
             
             // Button to show the second page
             document.getElementById('extension-homebridge-show-second-page-button').addEventListener('click', (event) => {
-                console.log("clicked on + button");
+                if(this.debug){
+                    console.log("clicked on + button");
+                }
                 document.getElementById('extension-homebridge-content-container').classList.add('extension-homebridge-showing-second-page');
                 
                 // iPhones need this fix to make the back button lay on top of the main menu button
@@ -205,7 +262,9 @@
             
             // Back button, shows main page
             document.getElementById('extension-homebridge-back-button-container').addEventListener('click', (event) => {
-                console.log("clicked on back button");
+                if(this.debug){
+                    console.log("clicked on back button");
+                }
                 document.getElementById('extension-homebridge-content-container').classList.remove('extension-homebridge-showing-second-page');
                 
                 // Undo the iphone fix, so that the main menu button is clickable again
@@ -247,7 +306,7 @@
                     
                     if(desired_tab == '?'){desired_tab = 'tutorial';}
 
-                    console.log("desired tab: " + desired_tab);
+                    //console.log("desired tab: " + desired_tab);
                     
                     for(var j=0; j<all_tabs.length;j++){
                         all_tabs[j].classList.add('extension-homebridge-hidden');
@@ -270,7 +329,7 @@
                 });
             };
          
-            this.show_things();
+            
             
 		}
 		
@@ -291,10 +350,9 @@
         //
         //  INIT
         //
-        // This gets the first data from the addon API
+        // This gets the first data from the addon API. Gets called every 5 seconds.
         
         get_init_data(){
-            
             // rate limiting, avoiding many requests to an unresponsive controller
             if(this.response_error_count > 10){
                 this.response_error_count = 1;
@@ -311,7 +369,7 @@
                         {'action':'init'}
 
     		        ).then((body) => {
-                    
+                        
                         this.response_error_count = 0;
                         
                         // Hide loading spinner
@@ -324,11 +382,22 @@
                         if(typeof body.debug != 'undefined'){
                             this.debug = body.debug;
                             if(body.debug == true){
-                                //console.log("Homebridge: debugging enabled. Init API result: ", body);
+                                console.log("Homebridge: debugging enabled. Init API result: ", body);
                             
                                 if(document.getElementById('extension-homebridge-debug-warning') != null){
                                     document.getElementById('extension-homebridge-debug-warning').style.display = 'block';
                                 }
+                            }
+                        }
+                    
+                        // Selected things
+                        if(typeof body.things != 'undefined'){
+                            this.selected_things = body['things'];
+                            
+                            // generate the things list automatically once if the necessary data is available
+                            if(this.things_generated_once == false){
+                                this.things_generated_once == true;
+                                this.show_things();
                             }
                         }
                     
@@ -402,6 +471,14 @@
                                 // show the pairing button
                                 //document.getElementById('extension-homebridge-show-pairing-button-container').style.display = 'block';
                             
+                            
+                                // Now that Homebridge has launched, clear the interval
+                    			try{
+                    				clearInterval(this.interval);
+                    			}
+                    			catch(e){
+                    				//console.log("no interval to clear? " + e);
+                    			}
                             }
                         }
                         
@@ -505,7 +582,9 @@
                     delete_button.setAttribute('data-name', items[item].name);
                     
 					delete_button.addEventListener('click', (event) => {
-                        console.log("delete button click. event: ", event);
+                        if(this.debug){
+                            console.log("delete button click. event: ", event);
+                        }
                         if(confirm("Are you sure you want to delete this item?")){
     						
     						// Inform backend
@@ -513,9 +592,13 @@
     							`/extensions/${this.id}/api/ajax`,
     							{'action':'delete_plugin','name': event.target.dataset.name}
     						).then((body) => { 
-    							console.log("Homebridge: delete plugin response: ", body);
+    							if(this.debug){
+                                    console.log("Homebridge: delete plugin response: ", body);
+                                }
                                 if(body.state == true){
-                                    console.log('the item was deleted on the backend');
+                                    if(this.debug){
+                                        console.log('Homebridge plugin was succesfully deleted on the backend');
+                                    }
                                     
                                     event.target.closest(".extension-homebridge-item").style.display = 'none'; // find the parent item
                                     // Remove the item form the list, or regenerate the entire list instead
@@ -564,7 +647,7 @@
             .then((response) => response.json())
             .then((json) => {
                 if(this.debug){
-                    console.log("GOT JSON!",json);
+                    console.log("Got NPM search response: ", json);
                 }
                 
                 var found_a_plugin = false;
@@ -595,7 +678,9 @@
                     var already_installed = false;
                     for (var j = 0; j < this.plugins.length; j++) {
                         if(json.objects[i].package.name == this.plugins[j]['name']){
-                            console.log("this plugin is already installed: ", json.objects[i].package.name);
+                            if(this.debug){
+                                console.log("this plugin is already installed: ", json.objects[i].package.name);
+                            }
                             already_installed = true;
                         }
                     }
@@ -640,7 +725,9 @@
                         item_install_button.innerText = "Install";
                         const plugin_name = json.objects[i].package.name;
                         item_install_button.addEventListener('click', (event) => {
-                            console.log("install button clicked. Plugin name: ", plugin_name);
+                            if(this.debug){
+                                console.log("install button clicked. Plugin name: ", plugin_name);
+                            }
                             const this_btn = event.target;
                             const this_btn_parent_item = this_btn.closest('.extension-homebridge-search-item');
                             if(this_btn_parent_item != null){
@@ -757,6 +844,9 @@
     						continue;
                         }
                         
+                        
+                        
+                        
                         //console.log("thing_title and ID: ", thing_title, thing_id);
         				//thing_ids.push( things[key]['href'].substr(things[key]['href'].lastIndexOf('/') + 1) );
                         
@@ -772,49 +862,133 @@
                         thing_checkbox.name = 'extension-homebridge-' + thing_id;
                         thing_checkbox.id = 'extension-homebridge-' + thing_id;
                         thing_checkbox.dataset.thing_id = thing_id;
+                        thing_checkbox.dataset.thing_title = thing_title;
                         thing_checkbox.classList.add('extension-homebridge-thing-checkbox');
                     
                         // label
                         var thing_label = document.createElement('label');
                         thing_label.htmlFor = 'extension-homebridge-' + thing_id;
-                        //label.appendChild(checkbox);
-                        thing_label.appendChild(document.createTextNode(thing_title));
+                        var thing_label_span = document.createElement('span');
+                        thing_label_span.appendChild(document.createTextNode(thing_title));
+                        thing_label.appendChild(thing_label_span);
                         
+                        // options container
+                        var options_el = document.createElement('div');
+                        options_el.classList.add('extension-homebridge-thing-options');
+                        options_el.innerHTML = '<p class="extension-homebridge-thing-options-hint">Share as:</p>';
                         // select
+                        /*
                         var select_el = document.createElement('select');
                         select_el.classList.add('extension-homebridge-thing-select');
                         select_el.classList.add('localization-select');
                         var selected_type = "";
                         var options_count = 0;
-                        if(this.selected_things.length > 0){
+                        */
+                        
+                        
+                        
+                        if(this.selected_things != null){
+                            if(this.selected_things.length > 0){
+                                
+                                // Set checkbox to checked
+                                for(let s=0;s<this.selected_things.length;s++){
                             
-                            // Set checkbox to checked
-                            for(let s=0;s<this.selected_things.length;s++){
-                            
-                                if(this.selected_things[s]['thing_id'] == thing_id){
-                                    console.log("setting checkbox checked for: ", thing_id);
-                                    thing_checkbox.checked = true;
+                                    if(this.selected_things[s]['thing_id'] == thing_id){
+                                        //console.log("setting checkbox checked for: ", thing_id);
+                                        thing_checkbox.checked = true;
                                     
-                                    // Add type dropdown
-                                    if( typeof this.selected_things[s]['selected_type'] != 'undefined'){
-                                        console.log("selected_type was not undefined");
-                                        if(this.selected_things[s]['selected_type'] != ""){
-                                            selected_type = this.selected_things[s]['selected_type'];
-                                            console.log("selected type was already set in selected_things:", selected_type);
+                                        // find which option(s) are enabled
+                                        /*
+                                        if( typeof this.selected_things[s]['selected_type'] != 'undefined'){
+                                            //console.log("selected_type was not undefined. it is: ", this.selected_things[s]['selected_type']);
+                                            if(this.selected_things[s]['selected_type'] != ""){
+                                                selected_type = this.selected_things[s]['selected_type'];
+                                                //console.log("selected type was already set in selected_things:", selected_type);
+                                            }
                                         }
+                                        else{
+                                            //console.log("selected_type as undefined");
+                                        }
+                                        */
                                     }
-                                    else{
-                                        console.log("selected_type as undefined");
+                                }
+                            }
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                        }
+                        else{
+                            console.error("this.selected_things was still null. Aborting showing things list.");
+                            return;
+                        }  
+                        //if(selected_type == ""){
+                            //console.log("selected_type is still empty string");
+                        //}
+                        
+                        
+                        //if(thing_id.indexOf("z2m-0xa4c138a9b75f7c4c") != -1){
+                            let possible_accessories = this.find_accessory(thing_id);
+                            if(Object.keys(possible_accessories).length == 0){
+                                //console.warn("device had no potential homekit abilities. Skipping: ", thing_id);
+                                continue;
+                            }
+                            this.all_potentials[thing_id] = possible_accessories;
+                        //}
+                        //console.log("\n\n\n--------------")
+                        //console.log("possible_accessories: ", possible_accessories);
+                        var highest_preference_count_so_far = 0;
+                        let pos_keys = Object.keys(possible_accessories);
+                        var checkboxes_el = document.createElement('div');
+                        checkboxes_el.classList.add('extension-homebridge-thing-checkboxes');
+                        for(let u=0;u<pos_keys.length;u++){
+                            //console.log("looping over possible accessories. pos_keys[u]: ", pos_keys[u]);
+                            
+                            // accessory checkbox
+                            var accessory_checkbox = document.createElement('input');
+                            accessory_checkbox.type = "checkbox";
+                            accessory_checkbox.name = 'extension-homebridge-' + thing_id + "-" + pos_keys[u];
+                            accessory_checkbox.id = 'extension-homebridge-' + thing_id + "-" + pos_keys[u];
+                            accessory_checkbox.dataset.thing_id = thing_id;
+                            accessory_checkbox.dataset.accessory_type = pos_keys[u];
+                            accessory_checkbox.classList.add('extension-homebridge-thing-options-checkbox');
+                            
+                            
+                            // Should the accessory checkbox be checked?
+                            for(let s=0;s<this.selected_things.length;s++){
+                                if(this.selected_things[s]['thing_id'] == thing_id){
+                                    if( this.selected_things[s].accessory_data.homekit_type == pos_keys[u]){
+                                        accessory_checkbox.checked = true;
                                     }
                                     
                                 }
                             }
+                            
+                            
+                            // accessory label
+                            var accessory_label = document.createElement('label');
+                            accessory_label.htmlFor = 'extension-homebridge-' + thing_id + "-" + pos_keys[u];
+                            var accessory_label_span = document.createElement('span');
+                            accessory_label_span.appendChild(document.createTextNode(this.camelcase_to_human_readable(pos_keys[u])));
+                            accessory_label.appendChild(accessory_label_span);
+                            
+                            checkboxes_el.appendChild(accessory_checkbox);
+                            checkboxes_el.appendChild(accessory_label);
+                            
                         }
-                                    
-                        if(selected_type == ""){
-                            //console.log("selected_type is still empty string");
-                        }
-                                    
+                        
+                        options_el.appendChild(checkboxes_el);
+                        
+                        
+                        
+                        //let possible_accessories = this.find_accessory(thing_id,selected_type);
+                        //break;
+                        
+                        /*
                         if(typeof things[key]['@type'] != 'undefined'){
                             if(things[key]['@type'].length > 0){
                                 //console.log("there is at least one thing capability available");
@@ -830,10 +1004,11 @@
 
                                     if(typeof things[key]['selectedCapability'] != 'undefined'){
                                         if(things[key]['selectedCapability'].length > 0){
+                                            //console.log("capability: ", things[key]['@type'][a]);
                                             if(things[key]['@type'][a] == things[key]['selectedCapability']){
-                                                console.log("this is the thing's selectedCapability: ", things[key]['selectedCapability']);
+                                                //console.log("this is the thing's selectedCapability: ", things[key]['selectedCapability']);
                                                 if(selected_type == ""){
-                                                    console.log("setting selected capability to selected option:", things[key]['selectedCapability']);
+                                                    //console.log("setting selected capability to selected option:", things[key]['selectedCapability']);
                                                     option_el.selected = true;
                                                 }
                                             }
@@ -850,14 +1025,16 @@
                         else{
                             console.warn("no @type defined");
                         }
+                        */
                         //const type_options = this.find_accessory(thing_id,selected_type);
                         
-                        if(options_count > 0){
+                        //if(options_count > 0){
                             // Append parts to item
                             thing_container.appendChild(thing_checkbox);
                             thing_container.appendChild(thing_label);
                             
-                            thing_container.appendChild(select_el);
+                            //options_el.appendChild(select_el);
+                            thing_container.appendChild(options_el);
                             /*
                             if(options_count > 1){
                                 thing_container.appendChild(select_el);
@@ -874,10 +1051,13 @@
 
                             // Append item to the dom
                             document.getElementById('extension-homebridge-thing-list').appendChild(thing_container);
-                        }
+                        //}
                         
                     }
                 }
+                
+                console.log("ALL POTENTIALS: ", this.all_potentials);
+                
             });
         
     	}
@@ -886,12 +1066,20 @@
  
  
  
+        
+        
+        
+        
+        
+        
+ 
+ 
  
  
         // FIND ACCESSORY
         // A helper method to find the most optimal/likely Homekit accessory types
  
-        find_accessory(thing_id,selected_type){
+        find_accessory(thing_id){
             
             // accessory mapping of minimally required properties/services
             /*
@@ -899,138 +1087,679 @@
                             "switch"{"required":"on_off"},
             }
             */
+            //const ac_map = {"light":{"required":"on_off","optional":"brightness"},
+            //            "switch"{"required":"on_off"},
+            //}
+            
+            const ac_map = [
+                {
+                    "homekit_type":"temperatureSensor",
+                    "webthings_type":["TemperatureSensor"],
+                    "preference_score":40,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"TemperatureProperty",
+                            "property_name":"temperature",
+                            "config_names":["getCurrentTemperature"]
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"humiditySensor",
+                    "webthings_type":["HumiditySensor"],
+                    "preference_score":30,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"HumidityProperty",
+                            "property_name":"humidity",
+                            "config_names":["getCurrentRelativeHumidity"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"airQualitySensor",
+                    "webthings_type":["AirQualitySensor"],
+                    "preference_score":90,
+                    "required":
+                    [
+                        {
+                            "property_name":"quality",
+                            "config_names":["getAirQuality"],
+                            "required_variable":"enum",
+                            "extra_attributes":{"targetAirPurifierStateValues":["unknown","excellent","good","poor","moderate","unhealthy"]}
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_at_type":"DensityProperty",
+                            "property_name":"filter",
+                            "config_names":["getPM2_5Density"],
+                        },
+                        {
+                            "property_at_type":"ConcentrationProperty",
+                            "config_names":["getAirQualityPPM"],
+                            "required_unit":"ppm",
+                        },
+                        {
+                            "property_name":"voc",
+                            "config_names":["getVOCDensity"]
+                        },
+                        {
+                            "property_name":"co2",
+                            "config_names":["getCarbonDioxideLevel"]
+                        },
+                        {
+                            "property_name":"nox",
+                            "config_names":["getNitrogenDioxideDensity"]
+                        },
+                        {
+                            "property_at_type":"TemperatureProperty",
+                            "property_name":"temperature",
+                            "config_names":["getCurrentTemperature"]
+                        },
+                        {
+                            "property_at_type":"HumidityProperty",
+                            "property_name":"humidity",
+                            "config_names":["getCurrentRelativeHumidity"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
+                        }
+                    
+                    ]
+                },
+                {
+                    "homekit_type":"airPurifier",
+                    "webthings_type":["OnOffSwitch"],
+                    "preference_score":100,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"state",
+                            "config_names":["getActive","setActive"]
+                        },
+                        {
+                            "property_name":"mode",
+                            "config_names":["getCurrentAirPurifierState"],
+                            "required_variable":"enum",
+                            "extra_attributes":{"currentAirPurifierStateValues":["off","auto","3"]}
+                        },
+                        {
+                            "property_name":"mode",
+                            "config_names":["getTargetAirPurifierState","setTargetAirPurifierState"],
+                            "required_variable":"enum",
+                            "extra_attributes":{"targetAirPurifierStateValues":["3","auto"]}
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_name":"filter",
+                            "config_names":["getFilterChangeIndication"],
+                            "required_variable":"boolean",
+                        },
+                        {
+                            "property_name":"child lock",
+                            "config_names":["setLockPhysicalControls"],
+                            "required_variable":"boolean",
+                        },
+                        {
+                            "property_name":"speed",
+                            "config_names":["getRotationSpeed","setRotationSpeed"]
+                        },
+                        {
+                            "property_name":"filter age",
+                            "config_names":["getFilterLifeLevel"]
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"lightbulb",
+                    "webthings_type":["Light","ColorControl"],
+                    "preference_score":100,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"state",
+                            "config_names":["getOn","setOn"]
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_at_type":"BrightnessProperty",
+                            "property_name":"brightness",
+                            "config_names":["getBrightness","setBrightness"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
+                        },
+                        {
+                            "property_at_type":"ColorProperty",
+                            "property_name":"color",
+                            "config_names":["getRGB","setRGB"],
+                            "required_variable":"string",
+                            "extra_attributes":{"hex":true,"hexPrefix":"#"}
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"lightSensor",
+                    "webthings_type":["MultiLevelSensor"],
+                    "preference_score":30,
+                    "required":
+                    [
+                        {
+                            "required_unit":"lux",
+                            "read_only":true
+                        },
+                    ]
+                },
+                {
+                    "homekit_type":"lockMechanism",
+                    "webthings_type":["Lock"],
+                    "preference_score":70,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"LockedProperty",
+                            "property_name":"state",
+                            "config_names":["getLockTargetState","setLockTargetState","getLockCurrentState"]
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"garageDoorOpener",
+                    "webthings_type":["OnOffSwitch"],
+                    "preference_score":20,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"state",
+                            "config_names":["getTargetDoorState","setTargetDoorState","getCurrentDoorState"]
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"doorbell",
+                    "webthings_type":["PushButton"],
+                    "preference_score":30,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"PushedProperty",
+                            "property_name":"state",
+                            "config_names":["getSwitch"],
+                            "read_only":true
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_at_type":"BrightnessProperty",
+                            "property_name":"brightness",
+                            "config_names":["getBrightness","setBrightness"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
+                        },
+                        {
+                            "property_at_type":"",
+                            "property_name":"volume",
+                            "config_names":["getVolume","setVolume"]
+                        },
+                        {
+                            "property_at_type":"MotionProperty",
+                            "property_name":"state",
+                            "config_names":["getMotionDetected"],
+                            "read_only":true
+                        }
+                    ]
+                
+                },
+                {
+                    "homekit_type":"fan",
+                    "webthings_type":["OnOffSwitch"],
+                    "preference_score":80,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"state",
+                            "config_names":["getOn","setOn"]
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"motionSensor",
+                    "webthings_type":["MotionSensor","BinarySensor"],
+                    "preference_score":60,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"MotionProperty",
+                            "property_name":"state",
+                            "config_names":["getMotionDetected"],
+                            "read_only":true
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_name":"tamper",
+                            "config_names":["getStatusTampered"],
+                            "required_variable":"boolean",
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"occupancySensor",
+                    "webthings_type":["BinarySensor","MotionSensor"],
+                    "preference_score":50,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"BooleanProperty",
+                            "property_name":"state",
+                            "config_names":["getOccupancyDetected"],
+                            "read_only":true
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_name":"tamper",
+                            "config_names":["getStatusTampered"],
+                            "required_variable":"boolean",
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"contactSensor",
+                    "webthings_type":["BinarySensor"],
+                    "preference_score":50,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"BooleanProperty",
+                            "property_name":"state",
+                            "config_names":["getContactSensorState"],
+                            "read_only":true
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_name":"tamper",
+                            "config_names":["getStatusTampered"],
+                            "required_variable":"boolean",
+                        }
+                    ]
+                },
+                {
+                    "homekit_type":"switch",
+                    "webthings_type":["OnOffSwitch","SmartPlug"],
+                    "preference_score":65,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"state",
+                            "config_names":["getOn","setOn"]
+                        }
+                    ],
+                },
+                {
+                    "homekit_type":"outlet",
+                    "webthings_type":["OnOffSwitch","SmartPlug"],
+                    "preference_score":90,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"state",
+                            "config_names":["getOn","setOn"]
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_at_type":"InstantaneousPowerProperty",
+                            "property_name":"watt",
+                            "config_names":["getWatts"],
+                            "required_unit":"watt"
+                        },
+                        {
+                            "property_at_type":"VoltageProperty",
+                            "property_name":"volt",
+                            "config_names":["getVolts"],
+                            "required_variable":"volt",
+                        },
+                        {
+                            "property_at_type":"CurrentProperty",
+                            "property_name":"ampere",
+                            "config_names":["getAmperes"],
+                            "required_unit":"ampere",
+                        },
+                        {
+                            "property_at_type":"",
+                            "property_name":"total",
+                            "config_names":["getTotalConsumption"],
+                            "required_unit":"kwh",
+                        },
+                    ]
+                },
+                {
+                    "homekit_type":"smokeSensor",
+                    "webthings_type":["SmokeSensor","BinarySensor"],
+                    "preference_score":100,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"SmokeProperty",
+                            "property_name":"",
+                            "config_names":["getSmokeDetected"]
+                        }
+                    ],
+                    "optional":[
+                        {
+                            "property_name":"tamper",
+                            "config_names":["getStatusTampered"],
+                            "required_variable":"boolean",
+                        }
+                    ]
+                }
+            ]
+            
+            
+            
             
             for(let i=0;i<this.all_things.length;i++){
                 if(this.all_things[i]['href'].endsWith("/" + thing_id)){
-                    console.log("found the thing: ", this.all_things[i]);
-                    console.log("it has x properties: ", Object.keys(this.all_things[i]['properties']).length);
+                    //console.log("found the thing: ", this.all_things[i]);
+                    //console.log("it has x properties: ", Object.keys(this.all_things[i]['properties']).length);
                     
                     
-                    // Create a lookup dictionary of all available properties and their @types
-                    for(let j=0;j<Object.keys(this.all_things[i]['properties']).length;j++){
-                        let key_id = Object.keys(this.all_things[i]['properties'])[j];
-                        console.log("prop: ", this.all_things[i]['properties'][key_id]);
-                        if( typeof this.all_things[i]['properties'][key_id]['@type'] != 'undefined'){
-                            console.log("property @type: ", this.all_things[i]['properties'][key_id]['@type']);
+                    let potentials = {};
+                    
+                    
+                    
+                    /*
+                        
+                {
+                    "homekit_type":"airQualitySensor",
+                    "webthings_type":["AirQualitySensor"],
+                    "preference_score":90,
+                    "required":
+                    [
+                        {
+                            "property_name":"quality",
+                            "config_names":["getAirQuality"],
+                            "required_variable":"enum",
+                            "extra_attributes":{"targetAirPurifierStateValues":["unknown","excellent","good","poor","moderate","unhealthy"]}
                         }
-                    }
-                    
-                    let optimal_types = [];
-                    if(typeof this.all_things[i]['@type'] != "undefined"){
-                        for(let h=0;h<this.all_things[i]['@type'].length;h++){
-                            console.log("looping over @types: ", this.all_things[i]['@type'][h]);
+                    ],
+                    "optional":[
+                        {
+                            "property_at_type":"DensityProperty",
+                            "property_name":"filter",
+                            "config_names":["getPM2_5Density"],
+                        },
+                        {
+                            "property_at_type":"ConcentrationProperty",
+                            "config_names":["getAirQualityPPM"],
+                            "required_unit":"ppm",
+                        },
+                        {
+                            "property_name":"voc",
+                            "config_names":["getVOCDensity"]
+                        },
+                        {
+                            "property_name":"co2",
+                            "config_names":["getCarbonDioxideLevel"]
+                        },
+                        {
+                            "property_name":"nox",
+                            "config_names":["getNitrogenDioxideDensity"]
+                        },
+                        {
+                            "property_at_type":"TemperatureProperty",
+                            "property_name":"temperature",
+                            "config_names":["getCurrentTemperature"]
+                        },
+                        {
+                            "property_at_type":"HumidityProperty",
+                            "property_name":"humidity",
+                            "config_names":["getCurrentRelativeHumidity"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
                         }
-                    }
-                    if(selected_type == ""){
-                        console.log("selected type was empty string");
-                        if(typeof this.all_things[i]["selectedCapability"] != 'undefined'){
-                            if(this.all_things[i]["selectedCapability"].length > 0){
-                                let selected_capability = this.all_things[i]["selectedCapability"];
-                                if(selected_capability == 'Light'){
-                                    console.log("it's set to be a lightbulb");
-                                    // find property by capability
+                    
+                    ]
+                },
+                        
+                    */
+                    
+                    
+                    
+                    for(let m=0;m<ac_map.length;m++){
+                        
+                        const schema = ac_map[m];       // accessory schema
+                        const dev = this.all_things[i]; // device object
+                        //console.log("schema:", schema);
+                        //console.log("dev:", dev);
+                        try{
+                            
+                            var all_required_available = true;
+                            
+                            // Check if there is a capability match
+                            if(typeof schema.webthings_type != 'undefined' && typeof dev['@type'] != 'undefined'){
+                                
+                                for(let w=0; w<schema.webthings_type.length; w++){ // loop over multiple allowed thing capabilities for this accessory type
+                                    if(dev['@type'].indexOf(schema.webthings_type[w]) > -1){
+                                        //console.log("thing capability match with this homekit schema: ", schema.homekit_type);
+                                        
+                                        //console.log("this schema has x required properties: ", schema.required.length);
+                                        var matched_required_properties = 0;
+                                        var used_property_at_types = [];
+                                        var potent = {"services":[],"extras":[]}; // will hold all the details to go into the final potentials dictionary
+                                        var preference_score = schema.preference_score; // the highter the number, the more likely that this is the one the user is looking for
+                                        var serv_type = "required";
+                                        const serv = ['optional','required']; // service parts.
+                                        //console.log("serv.length: ", serv.length);
+                                        
+                                        // Loop over all the potential services
+                                        for(let q=0; q<serv.length; q++){
+                                            
+                                            const serv_type = serv[q];
+                                            //console.log("serv_type: ", serv_type);
+                                            
+                                            if(typeof schema[serv_type] == 'undefined'){
+                                                //console.warn('schema did not have list:', serv_type );
+                                                continue;
+                                            }
+                                            
+                                            for(let r=0; r<schema[serv_type].length; r++){
+                                                //console.log("schema[serv_type][" + r + "] prop: ", schema[serv_type][r]);
+                                                //schema[serv_type][r];
+                                            
+                                                // loop over all the properties to make sure the required properties are available
+                                                for(let j=0;j<Object.keys(this.all_things[i]['properties']).length;j++){
+                                                    
+                                                    let key_id = Object.keys(this.all_things[i]['properties'])[j];
+                                                    //console.log("key_id: ", key_id);
+                                                    
+                                                    // Skip properties that are not relevant for Homekit
+                                                    var should_skip = false;
+                                                    for(let y=0;y<this.properties_to_ignore.length;y++){
+                                                        if(key_id.endsWith(this.properties_to_ignore[y])){
+                                                            should_skip = true;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if(should_skip){
+                                                        //console.log('skipping: ', key_id);
+                                                        continue;
+                                                    }
+                                                    
+                                                    let prop = this.all_things[i]['properties'][key_id];
+                                                
+                                                    var might_work = 0;
+                                                
+                                                    //console.log("prop: ", prop);
+                                                
+                                                    // compare property @types if possible, since that's the best possible match
+                                                    if(typeof schema[serv_type][r]['property_at_type'] != 'undefined' && prop['@type'] != 'undefined'){
+                                                        if(schema[serv_type][r]['property_at_type'] == prop['@type']){
+                                                            //console.log("required property @type match: ", prop['@type']);
+                                                            
+                                                            if(used_property_at_types.indexOf(prop['@type']) == -1){ // make sure each property @type is only counted once...
+                                                                used_property_at_types.push(prop['@type']);
+                                                                
+                                                                might_work = 2;
+                                                                
+                                                            }
+                                                            
+                                                        
+                                                        }
+                                                    }
+                                                    else if(typeof schema[serv_type][r]['property_at_type'] == 'undefined'){
+                                                        
+                                                        //console.log("schema has no @type defined: ", key_id, schema[serv_type][r]);
+                                                        //console.log("prop:", prop);
+                                                        if(typeof schema[serv_type][r]['property_name'] != 'undefined'){
+                                                            if(prop['title'].toLowerCase().indexOf(schema[serv_type][r]['property_name']) > -1){
+                                                                //console.log('(partial) name match: ', prop['title'], schema[serv_type][r]['property_name']);
+                                                                might_work++;
+                                                                might_work++;
+                                                            }
+                                                            else{
+                                                                might_work = -3; // can negate an earlier title match
+                                                            }
+                                                        }
+                                                        
+                                                        // checking for unit string might be finicky, as even within the webthings standard there are multiple ways to decribe these string (e.g. "percentage" and "%")
+                                                        if(typeof schema[serv_type][r]['required_unit'] != 'undefined' && typeof prop['unit'] != 'undefined'){
+                                                            if( prop['unit'].toLowerCase() == schema[serv_type][r]['required_unit'].toLowerCase() ){
+                                                                //console.log("perfect unit match: ", prop['unit']);
+                                                                might_work++;
+                                                            }
+                                                            else{
+                                                                might_work--;
+                                                            }
+                                                        }
+                                                        
+                                                        // handle a variable type indicator in the schema. E.g. "boolean" or "integer"
+                                                        if(typeof schema[serv_type][r]['required_variable'] != 'undefined'){
+                                                            
+                                                            // Complicated method of testing if enum strings that homekit needs are available in the property
+                                                            if(schema[serv_type][r]['required_variable'] == 'enum' && typeof prop['enum'] != 'undefined'){
+                                                                //console.log("enum spotted in property");
+                                                                
+                                                                if(typeof schema[serv_type][r]['extra_attributes'] != 'undefined'){
+                                                                    if(Object.keys(schema[serv_type][r]['extra_attributes']).length == 1){
+                                                                        let enum_test_key = Object.keys(schema[serv_type][r]['extra_attributes'])[0];
+                                                                        //console.log("enum_test_key: ", enum_test_key);
+                                                                        if (Symbol.iterator in Object(schema[serv_type][r]['extra_attributes'][enum_test_key])) {
+                                                                            //console.log("extra is single iterable");
+                                                                            var all_in_enum = true;
+                                                                            for(let p=0;p<schema[serv_type][r]['extra_attributes'][enum_test_key].length;p++){
+                                                                                let enum_item = schema[serv_type][r]['extra_attributes'][enum_test_key][p];
+                                                                                //console.log("enum_item: ", enum_item);
+                                                                                if(prop['enum'].indexOf(enum_item) == false){
+                                                                                    //console.log("not found in enum: ", enum_item);
+                                                                                    all_in_enum = false;
+                                                                                    might_work = -3;
+                                                                                    break;
+                                                                                }
+                                                                            }
+                                                                            if(all_in_enum){
+                                                                                //console.log("all_in_enum?", all_in_enum);
+                                                                                might_work++;
+                                                                                might_work++;
+                                                                            }
+                                                                        }
+                                                                        else{
+                                                                            might_work++;
+                                                                        }
+                                                                        
+                                                                    }
+                                                                    else{
+                                                                        might_work++;
+                                                                    }
+                                                                    
+                                                                    
+                                                                }
+                                                                else{
+                                                                    might_work++;
+                                                                }
+                                                            }
+                                                            // test for all types except enum
+                                                            else if(prop['type'] == schema[serv_type][r]['required_variable']){
+                                                                //console.log("property type match: ", prop['type']);
+                                                                might_work++;
+                                                                might_work++;
+                                                            }
+                                                            else{
+                                                                might_work = -3; // can negate an earlier title match
+                                                            }
+                                                        }
+                                                        
+                                                        //if(might_work > 0){
+                                                        //  console.log("might_work: ", might_work, prop['title'], dev['title']);
+                                                        //}
+                                                        
+                                                    }
+                                                    if(might_work > 0){
+                                                        //console.log("might_work: ", might_work, prop['title'], dev['title']);
+                                                        if(serv_type == 'required'){
+                                                            //console.log("increasing matched_required_properties");
+                                                            matched_required_properties++;
+                                                        }
+                                                        //console.error(schema.homekit_type, " matched_required_properties: " +  matched_required_properties + " of " + schema.required.length);
+                                                        
+                                                        preference_score = preference_score + 10; // the more matched properties, the higher the score
+                                                        potent['homekit_type'] = schema.homekit_type;
+                                                        potent['preference_score'] = preference_score;
+                                                        //potent['services'].push(schema[serv_type],prop);
+                                                        for(let t=0;t<schema[serv_type][r]['config_names'].length;t++){
+                                                            //console.log("adding service to potential accessory: ", schema[serv_type][r]['config_names'][t]);
+                                                            potent['services'].push( {'config_name':schema[serv_type][r]['config_names'][t],"thing_id":thing_id,"property_id":key_id} );
+                                                        }
+                                                        if(typeof schema[serv_type][r]['extra_attributes'] != 'undefined'){
+                                                            //console.log("adding extra attributes to potential accessory");
+                                                            potent['extras'].push( schema[serv_type][r]['extra_attributes'] );
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        
+                                            if(serv_type == 'required'){
+                                                if(matched_required_properties == schema[serv_type].length){
+                                                    //console.log(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties);
+                                                    potentials[schema.homekit_type] = potent;
+                                                }
+                                                else{
+                                                    //console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length);
+                                                }
+                                            }
+                                            
+                                        }
+                                        
+                                        
+                                    }
                                 }
                             }
+                            
                         }
+                        catch (e){
+                            console.log("Error parsing AC: ", e);
+                        }
+                        
                     }
+                    return potentials;
                     
                 }
             }
             
         }
- 
- 
- 
- 
- 
- 
-    	//
-    	//  A helper method that generates nice lists of properties from a Gateway property dictionary
-    	//
-    	get_property_lists(properties){
-    		var property1_list = []; // list of user friendly titles
-    		var property1_system_list = []; // list internal property id's
-    		var property2_list = [];
-    		var property2_system_list = [];
-		
-    		for (let prop in properties){
-    			var title = 'unknown';
-    			if( properties[prop].hasOwnProperty('title') ){
-    				title = properties[prop]['title'];
-    			}
-    			else if( properties[prop].hasOwnProperty('label') ){
-    				title = properties[prop]['label'];
-    			}
-                //console.log(title);
-            
-                var system_title = null;
-                try{
-                    var links_source = null;
-                    if( typeof properties[prop]['forms'] != 'undefined'){
-                        if(properties[prop]['forms'].length > 0){
-                            //console.log('valid href source in forms object');
-                            links_source = 'forms';
-                            //system_title = properties[prop]['forms'][0]['href'].substr(properties[prop]['forms'][0]['href'].lastIndexOf('/') + 1);
-                        }
-                        else{
-                            //console.log("forms existed, but was empty");
-                        }
-                    }
-                
-                    if( links_source == null && typeof properties[prop]['links'] != 'undefined'){
-                        if(properties[prop]['links'].length > 0){
-                            //console.log('valid href source in links object');
-                            links_source = 'links';
-                        }
-                        else{
-                            //console.log("links existed, but was empty");
-                        }
-                    }
-                    //console.log("final links_source: " + links_source);
-                
-                    if(links_source != null){
-                        system_title = properties[prop][links_source][0]['href'].substr(properties[prop][links_source][0]['href'].lastIndexOf('/') + 1);
-                    }else{
-                        //console.log('Error, no valid links source found?');
-                    }
-                
-                    //console.log('final system_title: ' + system_title);
-                }
-                catch(e){
-                    //console.log("forms/links error: " + e);
-                }
-            
-			
-    			// If a property is a number, add it to the list of possible source properties
-    			if( properties[prop]['type'] == 'integer' || properties[prop]['type'] == 'float' || properties[prop]['type'] == 'number'){
-				
-    				property1_list.push(title);
-    				property1_system_list.push(system_title);
-				
-    				// If a property is not read-only, then it can be added to the list of 'target' properties that can be changed based on a 'source' property
-    				if ( 'readOnly' in properties[prop] ) { // If readOnly is set, it could still be set to 'false'.
-    					if(properties[prop]['readOnly'] == false){
-    						property2_list.push(title);
-    						property2_system_list.push(system_title);
-    					}
-    				}
-    				else{ // If readOnly is not set, we can asume the property is not readOnly.
-    					property2_list.push(title);
-    					property2_system_list.push(system_title);
-    				}
-    			}
-    		}
-		
-    		// Sort lists alphabetically.
-    		/*
-    		property1_list.sort();
-    		property1_system_list.sort();
-    		property2_list.sort();
-    		property2_system_list.sort();
-    		*/
-		
-    		return { 'property1_list' : property1_list, 'property1_system_list' : property1_system_list, 'property2_list' : property2_list,'property2_system_list' : property2_system_list };
-    	}
  
  
  
@@ -1080,6 +1809,18 @@
 	        }).catch((e) => {
 	  			console.log("Error getting pairing code or generating QR code: ", e);
 	        });	
+        }
+ 
+        
+        
+        camelcase_to_human_readable(name) {
+            
+            function capitalize(word) {
+                return word.charAt(0).toUpperCase() + word.substring(1);
+            }
+            
+            var words = name.match(/[A-Za-z][a-z]*/g) || [];
+            return words.map(capitalize).join(" ");
         }
  
     
