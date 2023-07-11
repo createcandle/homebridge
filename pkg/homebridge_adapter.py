@@ -462,15 +462,80 @@ class HomebridgeAdapter(Adapter):
                     self.hb_config_data["bridge"]["name"] = "Candle " + str(self.hb_config_data["bridge"]["name"])
                     made_modifications = True
                     
+                    
+                """
+                   {
+                       "accessory": "webthings",
+                       "confirmationIndicateOffline": true,
+                       "manufacturer": "Candle",
+                       "name": "Candle carbon sensor",
+                       "password": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImQwZDUwMTIwLTM2MjctNDBkNy1hMGI3LWI2ZjYxZDFhZmIxNSJ9.eyJjbGllbnRfaWQiOiJsb2NhbC10b2tlbiIsInJvbGUiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZSI6Ii90aGluZ3M6cmVhZHdyaXRlIiwiaWF0IjoxNjg4OTgyNDc0LCJpc3MiOiJOb3Qgc2V0LiJ9.n5EQYmCYSuNLOFisSA_PtF-aUXglvUxfsbB9LYlZBsqi2u7a8T0rxRJh7KwsC7XlHyH7O2qF7DT0aC2jqkBdig",
+                       "topics": {
+                           "getCarbonDioxideLevel": "z2m-0xa4c138b4793c8e79/co2"
+                       },
+                       "type": "carbonDioxideSensor",
+                       "username": "nousername"
+                   }
+                    
+                """
+                    
                 try:
-                    for index,accessory in enumerate(reversed(self.hb_config_data["accessories"])):
+                    old_webthings_accessory_indexes = []
+                    for index,accessory in enumerate(self.hb_config_data["accessories"]):
                         if self.DEBUG:
                             print("run_hb: accessory #" + str(index))
-                            print(json.dumps(accessory, indent=4, sort_keys=True))
-                        thing_still_shared = False
-                        for thing in self.persistent_data['things']:
-                            if self.DEBUG:
-                                print("run_hb: thing to modify or add: " + str(thing))
+                            #print(json.dumps(accessory, indent=4, sort_keys=True))
+                        if accessory['accessory'] == 'webthings':
+                            #print("adding old index to remove later: " + str(index))
+                            old_webthings_accessory_indexes.append(index)
+                    
+                    # Remove config (sort them from high to low to make the array popping work without issue)
+                    old_webthings_accessory_indexes.sort(reverse=True)
+                    if self.DEBUG:
+                        print("sorted old_webthings_accessory_indexes: " + str(old_webthings_accessory_indexes))
+                    for old_ac_index in old_webthings_accessory_indexes:
+                        #print("old_ac_index: " + str(old_ac_index))
+                        self.hb_config_data["accessories"].pop(old_ac_index)
+                        
+                    #print("cleaned up self.hb_config_data: " + str(self.hb_config_data))
+                    
+                    
+                    # Recreate config
+                    for ac in self.persistent_data['things']:
+                        #print("ac: ")
+                        #print(json.dumps(ac, indent=4))
+                        
+                        new_ac = {
+                                "name": ac['thing_title'],
+                                "type": ac['accessory_data']['homekit_type'],
+                                "manufacturer": "Candle",
+                                "accessory": "webthings",
+                                "topics": {},
+                                "username": "",
+                                "password": self.persistent_data['token']
+                                }
+                        
+                        for service in ac['accessory_data']['services']:
+                            #print("service: " + str(service))
+                            new_ac['topics'][ service['config_name'] ] = service['thing_id'] + "/" + service['property_id']
+                                
+                        for extra in ac['accessory_data']['extras']:
+                            print("TODO: extra: " + str(extra))
+                            #new_ac
+                        
+                        #print("new_ac: " + str(new_ac))
+                        self.hb_config_data["accessories"].append(new_ac)
+                        made_modifications = True
+                    
+                    if self.DEBUG:
+                        print("UPDATED HOMEBRIDGE CONFIG DATA:")
+                        print(json.dumps(self.hb_config_data, indent=4))
+                        
+                    
+                        #thing_still_shared = False
+                        #for ac in self.persistent_data['things']:
+                        #    if self.DEBUG:
+                        #        print("run_hb: AC to modify or add: " + str(ac))
                                 #print( str(self.persistent_data['things'][thing] ))
                 
                 except Exception as ex:
@@ -480,11 +545,11 @@ class HomebridgeAdapter(Adapter):
             if made_modifications is True:
                 if self.DEBUG:
                     print("Saving modified config file")
-                    try:
-                       json.dump( self.hb_config_data, open( self.hb_config_file_path, 'w+' ) )    
-                    except Exception as ex:
-                        if self.DEBUG:
-                            print("Error saving modified config file: " + str(ex) )
+                try:
+                   json.dump( self.hb_config_data, open( self.hb_config_file_path, 'w+' ) )    
+                except Exception as ex:
+                    if self.DEBUG:
+                        print("Error saving modified config file: " + str(ex) )
             
         except Exception as ex:
             if self.DEBUG:
