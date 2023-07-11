@@ -589,34 +589,42 @@
                     //console.log("delete button element: ", delete_button);
                     delete_button.setAttribute('data-name', items[item].name);
                     
+                    
+                    
 					delete_button.addEventListener('click', (event) => {
                         if(this.debug){
                             console.log("delete button click. event: ", event);
                         }
-                        if(confirm("Are you sure you want to delete this item?")){
-    						
-    						// Inform backend
-    						window.API.postJson(
-    							`/extensions/${this.id}/api/ajax`,
-    							{'action':'delete_plugin','name': event.target.dataset.name}
-    						).then((body) => { 
-    							if(this.debug){
-                                    console.log("Homebridge: delete plugin response: ", body);
-                                }
-                                if(body.state == true){
-                                    if(this.debug){
-                                        console.log('Homebridge plugin was succesfully deleted on the backend');
-                                    }
-                                    
-                                    event.target.closest(".extension-homebridge-item").style.display = 'none'; // find the parent item
-                                    // Remove the item form the list, or regenerate the entire list instead
-                                    // parent4.removeChild(parent3);
-                                }
-
-    						}).catch((e) => {
-    							console.log("homebridge: error in delete items handler: ", e);
-    						});
+                        if(items[item].name == "homebridge-webthings"){
+                            alert("This plugin cannot be deleted because it is part of the Homebridge addon");
                         }
+                        else{
+                            if(confirm("Are you sure you want to delete this plugin?")){
+    						
+        						// Inform backend
+        						window.API.postJson(
+        							`/extensions/${this.id}/api/ajax`,
+        							{'action':'delete_plugin','name': event.target.dataset.name}
+        						).then((body) => { 
+        							if(this.debug){
+                                        console.log("Homebridge: delete plugin response: ", body);
+                                    }
+                                    if(body.state == true){
+                                        if(this.debug){
+                                            console.log('Homebridge plugin was succesfully deleted on the backend');
+                                        }
+                                    
+                                        event.target.closest(".extension-homebridge-item").style.display = 'none'; // find the parent item
+                                        // Remove the item form the list, or regenerate the entire list instead
+                                        // parent4.removeChild(parent3);
+                                    }
+
+        						}).catch((e) => {
+        							console.log("homebridge: error in delete items handler: ", e);
+        						});
+                            }
+                        }
+                        
 				  	});
 
                     // Add the clone to the list container
