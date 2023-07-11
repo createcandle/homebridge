@@ -260,7 +260,6 @@
                     // iPhones need this fix to make the back button lay on top of the main menu button
                     document.getElementById('extension-homebridge-view').style.zIndex = '3';
     			});
-                */
                 
                 // Back button, shows main page
                 document.getElementById('extension-homebridge-back-button-container').addEventListener('click', (event) => {
@@ -274,6 +273,7 @@
                 
                     this.get_init_data(); // repopulate the main page 
     			});
+                */
                 
             }
             catch (e){
