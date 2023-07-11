@@ -90,7 +90,7 @@
             }
 			//console.log("this.content:");
 			//console.log(this.content);
-            console.log("HOMEBRIDGE SHOW");
+            //console.log("HOMEBRIDGE SHOW");
             
 			const main_view = document.getElementById('extension-homebridge-view');
 			
@@ -102,7 +102,7 @@
 				main_view.innerHTML = this.content;
 			}
             
-            console.log("creating buttons");
+            
             try{
                 // Save things button
                 document.getElementById('extension-homebridge-save-things-button').addEventListener('click', (event) => {
@@ -134,7 +134,7 @@
                     
                     
                         if(checkbox_el.checked){
-                            console.log("checked");
+                            //console.log("checked");
                         
                             let thing_title = checkbox_el.getAttribute('data-thing_title');
                         
@@ -144,7 +144,7 @@
                                 let thing_id = options_checkboxes[k].getAttribute('data-thing_id');
                                 let accessory_type = options_checkboxes[k].getAttribute('data-accessory_type');
                                 let accessory_data = this.all_potentials[thing_id][accessory_type];
-                                console.log("accessory_data, thing_id, accessory_type: ", accessory_data, thing_id, accessory_type);
+                                //console.log("accessory_data, thing_id, accessory_type: ", accessory_data, thing_id, accessory_type);
                             
                                 selected_things.push( {
                                         "thing_id":thing_id,
@@ -164,7 +164,7 @@
                     
                     
                     }
-                    console.log("selected_things: ", selected_things);
+                    //console.log("selected_things: ", selected_things);
                 
                 
     		  		// Save things
@@ -283,8 +283,6 @@
             // Scroll the content container to the top
             document.getElementById('extension-homebridge-view').scrollTop = 0;
             
-            console.log("show: calling get_init_data");
-            
             // Finally, request the first data from the addon's API
             this.get_init_data();
 
@@ -295,7 +293,6 @@
 				//console.log("no interval to clear? " + e);
 			}
             this.interval = setInterval( () => {
-                console.log("5 seconds passed");
                 this.get_init_data();
             },5000);
          

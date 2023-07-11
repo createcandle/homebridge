@@ -119,7 +119,7 @@ class HomebridgeAdapter(Adapter):
         self.hb_process_pid = None
 
         # There is a very useful variable called "user_profile" that has useful values from the controller.
-        print("self.user_profile: " + str(self.user_profile))
+        #print("self.user_profile: " + str(self.user_profile))
         
         
         # This addon has a "hidden parent" itself, the manager_proxy.
@@ -132,7 +132,8 @@ class HomebridgeAdapter(Adapter):
         self.persistence_file_path = os.path.join(self.data_path, 'persistence.json') # dataDir points to the directory where the addons are allowed to store their data (/home/pi/.webthings/data)
         
         self.hb_path = os.path.join(self.data_path, "hb")
-        print("self.hb_path: " + str(self.hb_path))
+        #print("self.hb_path: " + str(self.hb_path))
+        
         self.hb_node_path = os.path.join(self.hb_path, "opt","homebridge","bin","node")
         self.hb_npm_path = os.path.join(self.hb_path, "opt","homebridge","bin","npm")
         self.hb_service_path = os.path.join(self.hb_path, "opt","homebridge","lib","node_modules","homebridge-config-ui-x","dist/bin/hb-service.js")
@@ -142,8 +143,9 @@ class HomebridgeAdapter(Adapter):
         self.hb_logs_file_path = os.path.join(self.hb_storage_path, "homebridge.log") 
         self.hb_config_file_path = os.path.join(self.hb_storage_path, "config.json") 
         
-        print("self.hb_service_path: " + str(self.hb_service_path))
-        print("self.hb_logs_file_path: " + str(self.hb_logs_file_path))
+        #print("self.hb_service_path: " + str(self.hb_service_path))
+        #print("self.hb_logs_file_path: " + str(self.hb_logs_file_path))
+        #print("self.hb_config_file_path: " + str(self.hb_config_file_path))
         
         
         # Create the data directory if it doesn't exist yet
@@ -329,7 +331,7 @@ class HomebridgeAdapter(Adapter):
             space = shell("df -P " + str(self.user_profile['addonsDir']) + " | tail -1 | awk '{print $4}'")
             # df -P . | tail -1 | awk '{print $4}'
         
-            print("free disk space: " + str(space))
+            print("Homebridge: free disk space: " + str(space))
         
             if len(space) == 0:
                 print("Error running disk space check command")
@@ -370,7 +372,8 @@ class HomebridgeAdapter(Adapter):
             # Check if homebridge deb file downloaded and get .deb file name, e.g. homebridge_1.0.34_arm64.deb
             deb_file_name = ""
             files = os.listdir(self.hb_path)
-            print("files: " + str(files))
+            if self.DEBUG:
+                print("files: " + str(files))
             for file_name in files:
                 if os.path.isfile(file_name):
                     if file_name.startswith("homebridge") and file_name.endswith('.deb'):
@@ -401,6 +404,19 @@ class HomebridgeAdapter(Adapter):
         
             os.system("tar xf data.tar.xz")
             os.system("rm data.tar.xz")
+            
+            # Clean up other remaining files
+            os.system("rm conffiles")
+            os.system("rm control")
+            os.system("rm debian-binary")
+            os.system("rm md5sums")
+            os.system("rm preinst")
+            os.system("rm prerm")
+            os.system("rm postinst")
+            os.system("rm postrm")
+            
+            # TODO: remove usr and lib directories too, but that's a bit risky without an absolute path
+            
             self.hb_install_progress = 80
             print("data.tar.xz done")
 
@@ -409,16 +425,20 @@ class HomebridgeAdapter(Adapter):
                 print("Homebridge installed succesfully")
 
                 print("Installing homebridge-webthings Node module")
-                p = subprocess.Popen([self.adapter.hb_npm_path,"install","--save","git+https://github.com/createcandle/homebridge-webthings.git"], cwd=self.adapter.hb_plugins_path)
+                p = subprocess.Popen([self.hb_npm_path,"install","--save","git+https://github.com/createcandle/homebridge-webthings.git"], cwd=self.hb_plugins_path)
                 p.wait()
         
-                self.adapter.update_installed_plugins_list()
+                if os.path.isdir(self.hb_webthings_plugin_path):
+                    self.update_installed_plugins_list()
                 
-                self.hb_installed = True
-                self.hb_install_progress = 100
-                
-                # now start Homebridge
-                self.run_hb()
+                    self.hb_installed = True
+                    self.hb_install_progress = 100
+                    
+                    # now start Homebridge
+                    self.run_hb()
+                    
+                else:
+                    self.hb_install_progress = -80
                 
             else:
                 print("Homebridge failed to fully install")
@@ -437,141 +457,123 @@ class HomebridgeAdapter(Adapter):
 
 
     def run_hb(self):
-        print("IN RUN_HB")
+        if self.DEBUG:
+            print("IN RUN_HB")
         os.system('pkill hb-service')
         time.sleep(1)
         
         if not os.path.isdir(self.hb_webthings_plugin_path):
             print("Error, the Homebridge-webthings module seems to be missing")
             self.send_pairing_prompt( "Error, Homebridge Webthings module is missing" )
+            self.hb_installed = False
             
         # Update the config file
-        if not os.path.isfile(self.hb_config_file_path):
-            print("Error, Homebridge configuration file does not exist")
-            self.hb_installed = False
-            return
+        #if not os.path.isfile(self.hb_config_file_path):
+        #    print("Error, Homebridge configuration file does not exist")
+        #    self.send_pairing_prompt( "Error, Homebridge configuration file is missing" )
+        #    self.hb_installed = False
+        #    return
         
         made_modifications = False
         
-        try:
-            with open(self.hb_config_file_path) as f:
-                self.hb_config_data = json.load(f)
-                if self.DEBUG:
-                    print('Homebridge config was loaded from file: ' + str(self.hb_config_file_path))
-                    print("self.hb_config_data: " + str(self.hb_config_data))
-                    
-                if not "bridge" in self.hb_config_data:
+        if os.path.isfile(self.hb_config_file_path):
+            
+            try:
+                with open(self.hb_config_file_path) as f:
+                    self.hb_config_data = json.load(f)
                     if self.DEBUG:
-                        print('ERROR, config data did not have bridge object. Aborting launch.')
-                    return
-                
-                self.setup_id = self.hb_config_data["bridge"]["name"][-4:]
-                if self.DEBUG:
-                    print("SETUP ID: " + str(self.setup_id))
-                
-                # name
-                #if self.hb_name != "Candle Homebridge":
-                #    self.hb_config_data["bridge"]["name"] = self.hb_name
-                #el
-                if not "Candle" in self.hb_config_data["bridge"]["name"]:
-                    self.hb_config_data["bridge"]["name"] = "Candle " + str(self.hb_config_data["bridge"]["name"])
-                    made_modifications = True
+                        print('Homebridge config was loaded from file: ' + str(self.hb_config_file_path))
+                        print("self.hb_config_data: " + str(self.hb_config_data))
                     
-                    
-                """
-                   {
-                       "accessory": "webthings",
-                       "confirmationIndicateOffline": true,
-                       "manufacturer": "Candle",
-                       "name": "Candle carbon sensor",
-                       "password": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImQwZDUwMTIwLTM2MjctNDBkNy1hMGI3LWI2ZjYxZDFhZmIxNSJ9.eyJjbGllbnRfaWQiOiJsb2NhbC10b2tlbiIsInJvbGUiOiJhY2Nlc3NfdG9rZW4iLCJzY29wZSI6Ii90aGluZ3M6cmVhZHdyaXRlIiwiaWF0IjoxNjg4OTgyNDc0LCJpc3MiOiJOb3Qgc2V0LiJ9.n5EQYmCYSuNLOFisSA_PtF-aUXglvUxfsbB9LYlZBsqi2u7a8T0rxRJh7KwsC7XlHyH7O2qF7DT0aC2jqkBdig",
-                       "topics": {
-                           "getCarbonDioxideLevel": "z2m-0xa4c138b4793c8e79/co2"
-                       },
-                       "type": "carbonDioxideSensor",
-                       "username": "nousername"
-                   }
-                    
-                """
-                    
-                try:
-                    old_webthings_accessory_indexes = []
-                    for index,accessory in enumerate(self.hb_config_data["accessories"]):
+                    if not "bridge" in self.hb_config_data:
                         if self.DEBUG:
-                            print("run_hb: accessory #" + str(index))
-                            #print(json.dumps(accessory, indent=4, sort_keys=True))
-                        if accessory['accessory'] == 'webthings':
-                            #print("adding old index to remove later: " + str(index))
-                            old_webthings_accessory_indexes.append(index)
-                    
-                    # Remove config (sort them from high to low to make the array popping work without issue)
-                    old_webthings_accessory_indexes.sort(reverse=True)
+                            print('ERROR, config data did not have bridge object. Aborting launch.')
+                        return
+                
+                    self.setup_id = self.hb_config_data["bridge"]["name"][-4:]
                     if self.DEBUG:
-                        print("sorted old_webthings_accessory_indexes: " + str(old_webthings_accessory_indexes))
-                    for old_ac_index in old_webthings_accessory_indexes:
-                        #print("old_ac_index: " + str(old_ac_index))
-                        self.hb_config_data["accessories"].pop(old_ac_index)
-                        
-                    #print("cleaned up self.hb_config_data: " + str(self.hb_config_data))
-                    
-                    
-                    # Recreate config
-                    for ac in self.persistent_data['things']:
-                        #print("ac: ")
-                        #print(json.dumps(ac, indent=4))
-                        
-                        new_ac = {
-                                "name": ac['thing_title'],
-                                "type": ac['accessory_data']['homekit_type'],
-                                "manufacturer": "Candle",
-                                "accessory": "webthings",
-                                "topics": {},
-                                "username": "",
-                                "password": self.persistent_data['token']
-                                }
-                        
-                        for service in ac['accessory_data']['services']:
-                            #print("service: " + str(service))
-                            new_ac['topics'][ service['config_name'] ] = service['thing_id'] + "/" + service['property_id']
-                                
-                        for extra in ac['accessory_data']['extras']:
-                            print("TODO: extra: " + str(extra))
-                            for k, v in extra.items():
-                                if self.DEBUG:
-                                    print("setting extra: " + str(k) + " -> " + str(v))
-                                new_ac[k] = v
-                        
-                        #print("new_ac: " + str(new_ac))
-                        self.hb_config_data["accessories"].append(new_ac)
+                        print("SETUP ID: " + str(self.setup_id))
+                
+                    if not "Candle" in self.hb_config_data["bridge"]["name"]:
+                        self.hb_config_data["bridge"]["name"] = "Candle " + str(self.hb_config_data["bridge"]["name"])
                         made_modifications = True
                     
-                    if self.DEBUG:
-                        print("UPDATED HOMEBRIDGE CONFIG DATA:")
-                        print(json.dumps(self.hb_config_data, indent=4))
+                    try:
+                        old_webthings_accessory_indexes = []
+                        for index,accessory in enumerate(self.hb_config_data["accessories"]):
+                            if self.DEBUG:
+                                print("run_hb: accessory #" + str(index))
+                                #print(json.dumps(accessory, indent=4, sort_keys=True))
+                            if accessory['accessory'] == 'webthings':
+                                #print("adding old index to remove later: " + str(index))
+                                old_webthings_accessory_indexes.append(index)
+                    
+                        # Remove config (sort them from high to low to make the array popping work without issue)
+                        old_webthings_accessory_indexes.sort(reverse=True)
+                        if self.DEBUG:
+                            print("sorted old_webthings_accessory_indexes: " + str(old_webthings_accessory_indexes))
+                        for old_ac_index in old_webthings_accessory_indexes:
+                            #print("old_ac_index: " + str(old_ac_index))
+                            self.hb_config_data["accessories"].pop(old_ac_index)
                         
+                        #print("cleaned up self.hb_config_data: " + str(self.hb_config_data))
                     
-                        #thing_still_shared = False
-                        #for ac in self.persistent_data['things']:
-                        #    if self.DEBUG:
-                        #        print("run_hb: AC to modify or add: " + str(ac))
-                                #print( str(self.persistent_data['things'][thing] ))
+                        # Recreate config
+                        for ac in self.persistent_data['things']:
+                            #print("ac: ")
+                            #print(json.dumps(ac, indent=4))
+                        
+                            new_ac = {
+                                    "name": ac['thing_title'],
+                                    "type": ac['accessory_data']['homekit_type'],
+                                    "manufacturer": "Candle",
+                                    "accessory": "webthings",
+                                    "topics": {},
+                                    "username": "",
+                                    "password": self.persistent_data['token']
+                                    }
+                        
+                            for service in ac['accessory_data']['services']:
+                                #print("service: " + str(service))
+                                new_ac['topics'][ service['config_name'] ] = service['thing_id'] + "/" + service['property_id']
+                                
+                            for extra in ac['accessory_data']['extras']:
+                                print("TODO: extra: " + str(extra))
+                                for k, v in extra.items():
+                                    if self.DEBUG:
+                                        print("setting extra: " + str(k) + " -> " + str(v))
+                                    new_ac[k] = v
+                        
+                            #print("new_ac: " + str(new_ac))
+                            self.hb_config_data["accessories"].append(new_ac)
+                            made_modifications = True
+                    
+                        if self.DEBUG:
+                            print("UPDATED HOMEBRIDGE CONFIG DATA:")
+                            print(json.dumps(self.hb_config_data, indent=4))
+                            
+                            #thing_still_shared = False
+                            #for ac in self.persistent_data['things']:
+                            #    if self.DEBUG:
+                            #        print("run_hb: AC to modify or add: " + str(ac))
+                                    #print( str(self.persistent_data['things'][thing] ))
                 
-                except Exception as ex:
-                    if self.DEBUG:
-                        print("Error modifying config file: " + str(ex))
+                    except Exception as ex:
+                        if self.DEBUG:
+                            print("Error modifying config file: " + str(ex))
                     
-            if made_modifications is True:
-                if self.DEBUG:
-                    print("Saving modified config file")
-                try:
-                   json.dump( self.hb_config_data, open( self.hb_config_file_path, 'w+' ) )    
-                except Exception as ex:
+                if made_modifications is True:
                     if self.DEBUG:
-                        print("Error saving modified config file: " + str(ex) )
+                        print("Saving modified config file")
+                    try:
+                       json.dump( self.hb_config_data, open( self.hb_config_file_path, 'w+' ) )    
+                    except Exception as ex:
+                        if self.DEBUG:
+                            print("Error saving modified config file: " + str(ex) )
             
-        except Exception as ex:
-            if self.DEBUG:
-                print("Error, could not load or parse config file: " + str(ex))
+            except Exception as ex:
+                if self.DEBUG:
+                    print("Error, could not load or parse config file: " + str(ex))
         
         
         if self.DEBUG:
@@ -631,7 +633,6 @@ class HomebridgeAdapter(Adapter):
                 
                 for key, val1 in sel.select():
                     line = key.fileobj.readline()
-                    print("???" + str(line))
                     if not line:
                         #pass
                         #break
@@ -645,7 +646,6 @@ class HomebridgeAdapter(Adapter):
                         self.parse_hb(f"{line}")
                 time.sleep(0.1)
             
-                    
         if self.DEBUG:
             print("BEYOND HOMEBRIDGE LOOP")
 
@@ -665,26 +665,27 @@ class HomebridgeAdapter(Adapter):
     def update_installed_plugins_list(self):
         print("in update_installed_plugins_list")
         self.plugins_list = []
-        files = os.listdir(self.hb_plugins_path)
-        if self.DEBUG:
-            print("plugin directories in node_modules: " + str(files))
-        for file_name in files:
-            print(str(file_name))
-            file_path = os.path.join(self.hb_plugins_path,file_name)
-            if os.path.isdir(file_path):
-                if self.DEBUG:
-                    print("is dir: " + str(file_path))
-                if file_name.startswith(".") or file_name == 'homebridge':
+        if os.path.isdir(self.hb_plugins_path):
+            files = os.listdir(self.hb_plugins_path)
+            if self.DEBUG:
+                print("plugin directories in node_modules: " + str(files))
+            for file_name in files:
+                print(str(file_name))
+                file_path = os.path.join(self.hb_plugins_path,file_name)
+                if os.path.isdir(file_path):
                     if self.DEBUG:
-                        print("spotted hidden or homebridge node module, should ignore this")
-                    continue
+                        print("is dir: " + str(file_path))
+                    if file_name.startswith(".") or file_name == 'homebridge':
+                        if self.DEBUG:
+                            print("spotted hidden or homebridge node module, should ignore this")
+                        continue
                     
-                #dir_size = os.path.getsize(file_path)
-                #if self.DEBUG:
-                #    print("dir_size:",dir_size)
+                    #dir_size = os.path.getsize(file_path)
+                    #if self.DEBUG:
+                    #    print("dir_size:",dir_size)
                     
-                #if file_name.startswith("homebridge") and file_name.endswith('.deb'):
-                self.plugins_list.append({'name':file_name,'value':1})
+                    #if file_name.startswith("homebridge") and file_name.endswith('.deb'):
+                    self.plugins_list.append({'name':file_name,'value':1})
 
         print("self.plugins_list: " + str(self.plugins_list))
 
