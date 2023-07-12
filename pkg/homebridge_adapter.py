@@ -598,7 +598,8 @@ class HomebridgeAdapter(Adapter):
         
         self.launched = True
 
-        while self.running:
+        #while self.running:
+        if self.running:
             if self.DEBUG:
                 print("__")
                 print("HOMEBRIDGE COMMAND")
@@ -612,7 +613,7 @@ class HomebridgeAdapter(Adapter):
                 print("hb process PID = " + str(self.hb_process_pid))
             
             
-            
+            """
             while self.running:
                 
                 # Read both stdout and stderr simultaneously
@@ -634,7 +635,8 @@ class HomebridgeAdapter(Adapter):
                         #print(f"STDERR: {line}", end="", file=sys.stderr)
                         self.parse_hb(f"{line}")
                 time.sleep(0.1)
-            
+            """
+                
         if self.DEBUG:
             print("BEYOND HOMEBRIDGE LOOP")
 
@@ -789,7 +791,7 @@ class HomebridgeAdapter(Adapter):
                 shell("sudo kill {}".format(self.hb_process_pid))
         
             time.sleep(1)
-            os.system('pkill hb-service')
+            os.system('pkill hb-service;pkill homebridge')
             
         except Exception as ex:
             print("Error setting status on thing: " + str(ex))
@@ -1218,7 +1220,7 @@ class HomebridgeAPIHandler(APIHandler):
                                     with open(self.adapter.hb_logs_file_path) as f: 
                                         hb_log = f.read().splitlines()
                                         for line in hb_log:
-                                            print("hb_log line: " + str(line))
+                                            #print("hb_log line: " + str(line))
                                             if line.startswith('X-HM:'):
                                                 self.adapter.qr_code_url = str(line).rstrip()
                                                 if self.DEBUG:
