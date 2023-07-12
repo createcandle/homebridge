@@ -6,6 +6,8 @@
             this.debug = false; // if enabled, show more output in the console
             this.response_error_count = 0;
             
+            this.launched = false;
+            
             this.all_things = [];
             this.selected_things = null;
             this.things_generated_once = false;
@@ -13,8 +15,6 @@
             this.properties_to_ignore = ["linkquality","data_transmission","data_blur","power_outage_memory"];
             this.all_potentials = {};
             
-            // We'll try and get this data from the addon backend
-            this.a_number_setting = null;
             this.plugins = [];
             this.plugins_blacklist = [
               'homebridge-config-ui',
@@ -45,7 +45,7 @@
     				{'action':'save_token','token':jwt}
 
     	        ).then((body) => {
-                    console.log("homebridge delayed update jwt response: ", body);
+                    //console.log("homebridge delayed update jwt response: ", body);
     	        }).catch((e) => {
     	  			console.log("Homebridge: error (delayed) saving token: ", e);
     	        });
@@ -95,7 +95,7 @@
 			const main_view = document.getElementById('extension-homebridge-view');
 			
 			if(this.content == ''){
-                console.log("content has not loaded yet");
+                //console.log("content has not loaded yet");
 				return;
 			}
 			else{
@@ -125,13 +125,9 @@
                         let checkbox_el = all_thing_items[i].querySelector(".extension-homebridge-thing-checkbox");
                         //console.log("selected_things[i].dataset.device_id: ", all_thing_items[i]['dataset']['thing_id']);
                         //console.log("alt: ", all_thing_items[i].getAttribute('data-thing_id'));
-                    
-                    
-                    
-                    
+                        
                         // Get dropdown selection
                         //let select_el = all_thing_items[i].querySelector(".extension-homebridge-thing-select");
-                    
                     
                         if(checkbox_el.checked){
                             //console.log("checked");
@@ -395,58 +391,9 @@
                                 }
                             }
                         }
-                    
-                        // Selected things
-                        if(typeof body.things != 'undefined'){
-                            this.selected_things = body['things'];
-                            
-                            // generate the things list automatically once if the necessary data is available
-                            if(this.things_generated_once == false){
-                                this.things_generated_once == true;
-                                this.show_things();
-                            }
-                        }
-                    
-                        // Show or hide busy/failed installing area
-                        if(typeof body.hb_installed != 'undefined'){
-                            this.hb_installed = body['hb_installed'];
-                            if(this.hb_installed == false){
-                                document.getElementById('extension-homebridge-main-busy-installing').style.display = "block"; 
-                            }
-                            else{
-                                document.getElementById('extension-homebridge-main-busy-installing').style.display = "none";
-                            }
                         
-                            if(body['hb_install_progress'] > 0){
-                                document.getElementById('extension-homebridge-main-busy-installing-progress-bar').style.width = body['hb_install_progress'] + "%";
-                            }
-                            else{
-                                document.getElementById('extension-homebridge-main-busy-installing').style.display = "none";
-                                document.getElementById('extension-homebridge-main-installing-failed').style.display = "block";
-                            }
-                        
-                            if(body['hb_install_progress'] == -2){
-                                console.log("Homebridge: not enough available disk space to install. Uninstall some other addons or switch to a bigger SD card.");
-                            }
-                        
-                            if(body['hb_install_progress'] == -40){
-                                console.log("Homebridge download failed");
-                            }
-                        
-                            if(body['hb_install_progress'] == -100){
-                                console.log("Homebridge installation failed");
-                            }
-                        
-                            if(body['hb_install_progress'] == 100){
-                                if(this.debug){
-                                    //console.log("Homebridge installation succeeded");
-                                }
-                                
-                            }
-                        
-                        }
-                    
                         if(typeof body.launched != 'undefined'){
+                            this.launched = body.launched;
                             if(body.launched == true){
                                 if(this.debug){
                                     //console.log("Homebridge launched");
@@ -487,6 +434,57 @@
                     			}
                             }
                         }
+                    
+                        // Selected things
+                        if(typeof body.things != 'undefined'){
+                            this.selected_things = body['things'];
+                            
+                            // generate the things list automatically once if the necessary data is available
+                            if(this.launched && this.things_generated_once == false){
+                                this.things_generated_once == true;
+                                this.show_things();
+                            }
+                        }
+                    
+                        // Show or hide busy/failed installing area
+                        if(typeof body.hb_installed != 'undefined'){
+                            this.hb_installed = body['hb_installed'];
+                            if(this.hb_installed == false){
+                                document.getElementById('extension-homebridge-main-busy-installing').style.display = "block"; 
+                            }
+                            else{
+                                document.getElementById('extension-homebridge-main-busy-installing').style.display = "none";
+                            }
+                        
+                            if(body['hb_install_progress'] > 0){
+                                document.getElementById('extension-homebridge-main-busy-installing-progress-bar').style.width = body['hb_install_progress'] + "%";
+                            }
+                            else{
+                                document.getElementById('extension-homebridge-main-busy-installing').style.display = "none";
+                                document.getElementById('extension-homebridge-main-installing-failed').style.display = "block";
+                            }
+                        
+                            if(body['hb_install_progress'] == -2){
+                                console.log("Homebridge: not enough available disk space to install. Uninstall some other addons or switch to a bigger SD card.");
+                            }
+                        
+                            if(body['hb_install_progress'] == -40){
+                                console.log("Homebridge download failed");
+                            }
+                        
+                            if(body['hb_install_progress'] == -100){
+                                console.log("Homebridge installation failed");
+                            }
+                        
+                            if(body['hb_install_progress'] == 100){
+                                if(this.debug){
+                                    //console.log("Homebridge installation succeeded");
+                                }
+                            }
+                        
+                        }
+                    
+                        
                         
                     
                         /*
@@ -1072,7 +1070,7 @@
                     }
                 }
                 
-                console.log("ALL POTENTIALS: ", this.all_potentials);
+                //console.log("ALL POTENTIALS: ", this.all_potentials);
                 
             });
         

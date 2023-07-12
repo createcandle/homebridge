@@ -443,25 +443,7 @@ class HomebridgeAdapter(Adapter):
 
 
 
-
-
-    def run_hb(self):
-        if self.DEBUG:
-            print("IN RUN_HB")
-        os.system('pkill hb-service')
-        time.sleep(1)
-        
-        if not os.path.isdir(self.hb_webthings_plugin_path):
-            print("Error, the Homebridge-webthings module seems to be missing")
-            self.send_pairing_prompt( "Error, Homebridge Webthings module is missing" )
-            self.hb_installed = False
-            
-        # Update the config file
-        #if not os.path.isfile(self.hb_config_file_path):
-        #    print("Error, Homebridge configuration file does not exist")
-        #    self.send_pairing_prompt( "Error, Homebridge configuration file is missing" )
-        #    self.hb_installed = False
-        #    return
+    def update_config_file(self):
         
         made_modifications = False
         
@@ -476,7 +458,7 @@ class HomebridgeAdapter(Adapter):
                     
                     if not "bridge" in self.hb_config_data:
                         if self.DEBUG:
-                            print('ERROR, config data did not have bridge object. Aborting launch.')
+                            print('ERROR, config data did not have bridge object.')
                         return
                 
                     self.setup_id = self.hb_config_data["bridge"]["name"][-4:]
@@ -563,6 +545,27 @@ class HomebridgeAdapter(Adapter):
             except Exception as ex:
                 if self.DEBUG:
                     print("Error, could not load or parse config file: " + str(ex))
+
+
+    def run_hb(self):
+        if self.DEBUG:
+            print("IN RUN_HB")
+        os.system('pkill hb-service')
+        time.sleep(1)
+        
+        if not os.path.isdir(self.hb_webthings_plugin_path):
+            print("Error, the Homebridge-webthings module seems to be missing")
+            self.send_pairing_prompt( "Error, Homebridge Webthings module is missing" )
+            self.hb_installed = False
+            
+        # Update the config file
+        #if not os.path.isfile(self.hb_config_file_path):
+        #    print("Error, Homebridge configuration file does not exist")
+        #    self.send_pairing_prompt( "Error, Homebridge configuration file is missing" )
+        #    self.hb_installed = False
+        #    return
+        
+        self.update_config_file()
         
         
         if self.DEBUG:
@@ -1212,6 +1215,10 @@ class HomebridgeAPIHandler(APIHandler):
                         pin = ""
                         code = ""
                         try:
+                            
+                            if not "bridge" in self.adapter.hb_config_data:
+                                self.adapter.update_config_file()
+                            
                             if "bridge" in self.adapter.hb_config_data and len(self.adapter.setup_id) > 0:
                                 
                                 pin = self.adapter.hb_config_data["bridge"]["pin"]
@@ -1229,6 +1236,9 @@ class HomebridgeAPIHandler(APIHandler):
                                 
                                 if code != "":
                                     state = True
+                                
+                            else:
+                                print("pair: mising config data")
                                 
                         except Exception as ex:
                             if self.DEBUG:
