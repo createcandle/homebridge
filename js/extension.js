@@ -378,7 +378,7 @@
                         document.getElementById('extension-homebridge-loading').classList.add('extension-homebridge-hidden');
                         
                         // Reveal main tab menu
-                        document.getElementById('extension-homebridge-tab-buttons-container').style.display = 'flex';
+                        // document.getElementById('extension-homebridge-tab-buttons-container').style.display = 'flex';
                     
                         // Handle debug preference
                         if(typeof body.debug != 'undefined'){
