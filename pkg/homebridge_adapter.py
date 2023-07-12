@@ -90,7 +90,7 @@ class HomebridgeAdapter(Adapter):
 
         # set up some variables
         self.DEBUG = True
-        self.a_number_setting = 0
+        #self.a_number_setting = 0
         
         # this is a completely random set of items. It is sent to the user interface through the API handler, which till turn it into a list
         self.plugins_list = [
@@ -192,14 +192,14 @@ class HomebridgeAdapter(Adapter):
 
         # 3. Now we check if all the values that should exist actually do
 
-        if 'state' not in self.persistent_data:
-            self.persistent_data['state'] = False
+        #if 'state' not in self.persistent_data:
+        #    self.persistent_data['state'] = False
 
-        if 'slider' not in self.persistent_data:
-            self.persistent_data['slider'] = 0
+        #if 'slider' not in self.persistent_data:
+        #    self.persistent_data['slider'] = 0
             
-        if 'dropdown' not in self.persistent_data:
-            self.persistent_data['dropdown'] = 'Auto'
+        #if 'dropdown' not in self.persistent_data:
+        #    self.persistent_data['dropdown'] = 'Auto'
 
         if 'token' not in self.persistent_data:
             self.persistent_data['token'] = "No token provided yet"
@@ -291,21 +291,10 @@ class HomebridgeAdapter(Adapter):
             if self.DEBUG:
                 print(str(config)) # Print the entire config data
                 
-            if 'A boolean setting' in config:
-                self.persistent_data['a_boolean_setting'] = bool(config['A boolean setting']) # sometime you may want the addon settings to override the persistent value
-                if self.DEBUG:
-                    print("A boolean setting preference was in config: " + str(self.persistent_data['a_boolean_setting']))
-
-            if 'A number setting' in config:
-                #print("-Debugging was in config")
-                self.a_number_setting = int(config['A number setting'])
-                if self.DEBUG:
-                    print("A number setting preference was in config: " + str(self.a_number_setting))
-            
-            if "Homebridge name" in config:
-                self.hb_name = str(config["Homebridge name"])
-                if self.DEBUG:
-                    print("Homebridge name preference was in config: " + str(self.hb_name))
+            #if "Homebridge name" in config:
+            #    self.hb_name = str(config["Homebridge name"])
+            #    if self.DEBUG:
+            #        print("Homebridge name preference was in config: " + str(self.hb_name))
             
             
             
@@ -696,7 +685,7 @@ class HomebridgeAdapter(Adapter):
     #
 
     # It's nice to have a central location where a change in a property is managed.
-
+    """
     def set_state(self,state):
         try:
             print("in set_state with state: " + str(state))
@@ -759,7 +748,8 @@ class HomebridgeAdapter(Adapter):
             print("error in set_dropdown: " + str(ex))
 
 
-
+    """
+    
 
     #
     # The methods below are called by the controller
@@ -781,32 +771,35 @@ class HomebridgeAdapter(Adapter):
         
 
     def unload(self):
-        """ Happens when the user addon / system is shut down."""
         if self.DEBUG:
             print("Bye!")
             
         self.running = False
             
         try:
-            self.devices['homebridge-thing'].properties['status'].update( "Bye")
+            #self.devices['homebridge-thing'].properties['status'].update( "Bye")
+            # Tell the controller to show the device as disconnected. This isn't really necessary, as the controller will do this automatically.
+            #self.devices['homebridge-thing'].connected_notify(False)
+        
+        
+            # A final chance to save the data.
+            self.save_persistent_data()
+
+            if self.hb_process_pid != None:
+                shell("sudo kill {}".format(self.hb_process_pid))
+        
+            time.sleep(1)
+            os.system('pkill hb-service')
+            
         except Exception as ex:
             print("Error setting status on thing: " + str(ex))
         
-        # Tell the controller to show the device as disconnected. This isn't really necessary, as the controller will do this automatically.
-        self.devices['homebridge-thing'].connected_notify(False)
         
-        # A final chance to save the data.
-        self.save_persistent_data()
-
-        if self.hb_process_pid != None:
-            shell("sudo kill {}".format(self.hb_process_pid))
         
-        time.sleep(1)
-        os.system('pkill hb-service')
+        
 
-
+    """
     def remove_thing(self, device_id):
-        """ Happens when the user deletes the thing."""
         print("user deleted the thing")
         try:
             # We don't have to delete the thing in the addon, but we can.
@@ -816,7 +809,7 @@ class HomebridgeAdapter(Adapter):
                 print("User removed thing")
         except:
             print("Could not remove thing from devices")
-
+    """
 
 
 
@@ -837,14 +830,17 @@ class HomebridgeAdapter(Adapter):
                 if self.DEBUG:
                     print("Persistence file existed. Will try to save to it.")
 
-            with open(self.persistence_file_path) as f:
-                if self.DEBUG:
-                    print("saving: " + str(self.persistent_data))
-                try:
-                    json.dump( self.persistent_data, open( self.persistence_file_path, 'w+' ) )
-                except Exception as ex:
-                    print("Error saving to persistence file: " + str(ex))
+            try:
+                json.dump( self.persistent_data, open( self.persistence_file_path, 'w+' ) )
                 return True
+            except Exception as ex:
+                print("Error saving to persistence file: " + str(ex))
+
+            #with open(self.persistence_file_path) as f:
+            #    if self.DEBUG:
+            #        print("saving: " + str(self.persistent_data))
+                
+            #    return True
             #self.previous_persistent_data = self.persistent_data.copy()
 
         except Exception as ex:
@@ -1135,9 +1131,6 @@ class HomebridgeAPIHandler(APIHandler):
                           status=200,
                           content_type='application/json',
                           content=json.dumps({
-                                      'a_number_setting':self.adapter.a_number_setting,
-                                      'thing_state':self.adapter.persistent_data['state'],
-                                      'slider_value':self.adapter.persistent_data['slider'],
                                       'plugins_list':self.adapter.plugins_list,
                                       'hb_installed':self.adapter.hb_installed,
                                       'hb_install_progress':self.adapter.hb_install_progress,
