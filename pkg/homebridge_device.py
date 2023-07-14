@@ -70,14 +70,6 @@ class HomebridgeDevice(Device):
             
             
             
-            else:
-                if self.DEBUG:
-                    print("Warning, not adding resolution switcher property to Homebridge device. self.adapter.available_resolutions: " + str(self.adapter.available_resolutions))
-            
-            
-            
-            
-            if self.adapter.use_doorbell_button:
                 self.properties["doorbell"] = HomebridgeProperty(
                                 self,
                                 "doorbell",
@@ -94,11 +86,31 @@ class HomebridgeDevice(Device):
                                 self,
                                 "test_doorbell",
                                 {
-                                    'title': "Test doorbell",
+                                    'title': "Press doorbell",
                                     'readOnly': False,
                                     'type': 'boolean'
                                 },
                                 False) # we give the new property the value that was remembered in the persistent data store
+                
+                
+                self.properties["privacy_preview"] = HomebridgeProperty(
+                                self,
+                                "privacy_preview",
+                                {
+                                    'title': "Private preview",
+                                    'readOnly': False,
+                                    'type': 'boolean'
+                                },
+                                self.adapter.persistent_data['privacy_preview']) # we give the new property the value that was remembered in the persistent data store
+                
+            
+            
+            else:
+                if self.DEBUG:
+                    print("Warning, not adding resolution switcher property to Homebridge device. self.adapter.available_resolutions: " + str(self.adapter.available_resolutions))
+            
+            
+
                 
             
             
@@ -195,9 +207,14 @@ class HomebridgeProperty(Property):
             elif self.id == 'test_doorbell':
                 self.device.adapter.test_doorbell(bool(value))
                 
+            elif self.id == 'privacy_preview':
+                self.device.adapter.set_privacy_preview(bool(value))
+                
             elif self.id == 'camera_resolution':
                 self.device.adapter.set_camera_resolution(str(value))
         
+        
+            
             # The controller is waiting 60 seconds for a response from the addon that the new value is indeed set. If "notify_property_changed" isn't used before then, the controller will revert the value in the interface back to what it was.
             
         

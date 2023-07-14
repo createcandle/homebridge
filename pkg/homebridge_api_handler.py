@@ -1,4 +1,5 @@
 import os
+import json
 import subprocess
 
 from gateway_addon import APIHandler, APIResponse
@@ -70,6 +71,7 @@ class HomebridgeAPIHandler(APIHandler):
                             # Check if Homebridge is running
                             launched = False
                             hb_check = shell('ps aux | grep hb-ser')
+                            #print("hb_check:\n" + str(hb_check))
                             if 'hb-service' in hb_check:
                                 launched = True
                                 
@@ -373,3 +375,15 @@ class HomebridgeAPIHandler(APIHandler):
         self.adapter.update_installed_plugins_list()
         
         return True
+        
+        
+def shell(command):
+    #print("HOTSPOT SHELL COMMAND = " + str(command))
+    shell_check = ""
+    try:
+        shell_check = subprocess.check_output(command, shell=True)
+        shell_check = shell_check.decode("utf-8")
+        shell_check = shell_check.strip()
+    except:
+        pass
+    return shell_check 

@@ -205,10 +205,11 @@
                     <h4>Pairing</h4>
                     <p>Once the Homebridge addon is fully installed you should pair it with your Homekit controller. Once this is complete any things you have selected to share should automatically show up in your Home app.</p>
                     
-                    
-                    
                     <h4>Alternative app</h4>
                     <p>You might want to try installing the Eve smart home app and see if you like it. Their app has a few more options than Apple's own Home app.</p>
+                    
+                    
+                    
                     
                     <h2>Plugins (advanced)</h2>
                     <p>You can help more of your smart home devices "pretend" to be Homekit devices. There are many community-created plugins for this, which you can install. You will also have to provide settings fo your device, which is where it gets more complicated. You will have to open the special Homebridge interface, and change the setting for that specific plugin. For example, some devices may require a login name and password. Others may require you to know the device's IP address, and so forth.</p>
@@ -217,6 +218,20 @@
                     <p>If you have connected a ribbon-cable camera to your Raspberry Pi, then you will see the option to share that with Homekit too. It will then become a streaming camera. This is a convenient way of creating a security camera or even smart doorbell. This installs a plugin, changes its settings for you, and runs a local camera server.</p>
                     <p>If you have a button attached to the Raspberry Pi's IO pins, then you can make that work as a doorbell button. You can select which pin to use in this addon's settings.</p>
                     <p>It's recommended to also install the <span style="font-style:italic">Candlecam</span> addon, but disable it's video streaming in its settings. This will give you many more features, such as playing ringtone sounds.</p>
+                    
+                    <h4>Privacy protecting camera preview</h4>
+                    <p>Normally the camera preview in the Apple Home app shows what the camera sees as a preview image that refreshes every 10 seconds. If you prefer you can show a generic 'camera is available' image instead. Opening the camera stream will still show the normal camera view.</p>
+                    <div class="extension-homebridge-two-column">
+                        <div>
+                            <img src="/extensions/homebridge/images/tutorial_camera_preview.jpg" alt="without privacy protection"/> 
+                            <p style="font-style:italic">Without privacy protecting preview</p>
+                        </div>
+                        <div>
+                            <img src="/extensions/homebridge/images/candle_open_eye_x1920.jpg" alt="with privacy protection"/> 
+                            <p style="font-style:italic">With privacy protecting preview</p>
+                        </div>
+                    </div>
+                    
                     
                     
                     <h2>Troubleshooting</h2>

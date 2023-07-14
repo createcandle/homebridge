@@ -130,6 +130,7 @@ class HomebridgeAdapter(Adapter):
         self.streamer_path = os.path.join(self.addon_path, "streamer")
         self.mediamtx_binary_path = os.path.join(self.streamer_path, "mediamtx")
         self.not_streaming_thumbnail_path = os.path.join(self.addon_path, "images", "candle_closed_eye_x1920.jpg")
+        self.privacy_streaming_thumbnail_path = os.path.join(self.addon_path, "images", "candle_open_eye_x1920.jpg")
         #print("self.hb_service_path: " + str(self.hb_service_path))
         #print("self.hb_logs_file_path: " + str(self.hb_logs_file_path))
         #print("self.hb_config_file_path: " + str(self.hb_config_file_path))
@@ -184,9 +185,12 @@ class HomebridgeAdapter(Adapter):
         if 'camera_resolution' not in self.persistent_data:
             self.persistent_data['camera_resolution'] = "Recommended (480p)"
         
+        if 'privacy_preview' not in self.persistent_data:
+            self.persistent_data['privacy_preview'] = False
+        
         # Doorbell button
         self.doorbell_port = 8559
-        self.use_doorbell_button = True
+        self.use_doorbell_button = False
         self.doorbell_button_pin = 17
         self.doorbell_relay_pin = None
         self.doorbell_url = 'http://localhost:' + str(self.doorbell_port) + '/doorbell?Candle%20camera'
@@ -225,7 +229,7 @@ class HomebridgeAdapter(Adapter):
         self.last_thumbnail_time = 0
         self.thumbnail_server_port = 8552
         self.thumbnail_server_thread = None
-        #self.camera_force_hd = False
+        self.privacy_preview_placed = False
         
         self.unbridge_camera = False # faster if set to True, but more hassle for the end user
         self.camera_config = {
@@ -235,7 +239,7 @@ class HomebridgeAdapter(Adapter):
                                                 {
                                                 "name": "Candle camera", 
                                                 "manufacturer": "Candle", 
-                                                "doorbell": False, 
+                                                "doorbell": True, 
                                                 "switches": True, 
                                                 "unbridge": False, 
                                                 "videoConfig": 
@@ -245,9 +249,10 @@ class HomebridgeAdapter(Adapter):
                                                         "maxWidth": 640, 
                                                         "maxHeight": 480, 
                                                         "maxFPS": 10,
-                                                        #"forceMax": True,
+                                                        "forceMax": True,
                                                         "additionalCommandline": "-x264-params intra-refresh=1:bframes=0",
-                                                        "audio": False
+                                                        "audio": False,
+                                                        "≈": False
                                                         }
                                                 }
                                             ], 
@@ -267,11 +272,7 @@ class HomebridgeAdapter(Adapter):
         
         
         # TEMPORARY DEBUG
-        self.has_respeaker_hat = True
-        
-        
-        
-            
+        #self.has_respeaker_hat = True
         
         
         
@@ -303,7 +304,7 @@ class HomebridgeAdapter(Adapter):
         # Create the thing
         try:
             #if self.has_respeaker_hat:
-            if self.pi_camera_available or self.use_doorbell_button: 
+            if self.pi_camera_available: 
                 # Create the device object
                 homebridge_device = HomebridgeDevice(self)
             
@@ -371,7 +372,7 @@ class HomebridgeAdapter(Adapter):
 
     def add_from_config(self):
         """ This retrieves the addon settings from the controller """
-        print("in add_from_config")
+        #print("in add_from_config")
         try:
             database = Database(self.addon_name)
             if not database.open():
@@ -400,6 +401,11 @@ class HomebridgeAdapter(Adapter):
             if self.DEBUG:
                 print(str(config)) # Print the entire config data
                 
+            if 'Privacy protecting camera preview' in config:
+                self.persistent_data['privacy_preview'] = bool(config['Privacy protecting camera preview'])
+                if self.DEBUG:
+                    print("Privacy protecting camera preview preference was in config: " + str(self.persistent_data['privacy_preview']))
+            
             
             if 'Doorbell button GPIO pin' in config:
                 self.doorbell_button_pin = int(config['Doorbell button GPIO pin'])
@@ -445,14 +451,16 @@ class HomebridgeAdapter(Adapter):
         
         # Check if the plugin is installed
         if os.path.isdir(self.hb_camera_plugin_path):
-            print("camera plugin seems to be installed")
+            if self.DEBUG:
+                print("camera plugin seems to be installed")
             self.pi_camera_plugin_installed = True
         
         # Check is a camera is detected    
         cam_check = shell("libcamera-vid --list-cameras")
         
         if '640x480' in cam_check:
-            print("camera is capable of 640x480")
+            if self.DEBUG:
+                print("camera is capable of 640x480")
             self.pi_camera_available = True
             self.available_resolutions.append('Recommended (480p)')
             if self.persistent_data['camera_resolution'] == None:
@@ -460,7 +468,8 @@ class HomebridgeAdapter(Adapter):
 
         
         if '1920' in cam_check:
-            print("camera is capable of full HD")
+            if self.DEBUG:
+                print("camera is capable of full HD")
             self.pi_camera_available = True
             self.camera_hd_capable = True
             self.available_resolutions.append('Full HD (1080p)')
@@ -471,6 +480,22 @@ class HomebridgeAdapter(Adapter):
             self.previous_camera_resolution = self.persistent_data['camera_resolution']
 
         
+        
+        
+    def stop_camera(self):
+        if self.DEBUG:
+            print("in stop_camera")
+        if self.stream_process != None:
+            self.stream_process.terminate()
+            time.sleep(2)
+        os.system('pkill mediamtx')
+        time.sleep(1)
+        self.stream_process = None
+        self.c = None
+        os.system('cp ' + str(self.not_streaming_thumbnail_path) + ' /tmp/homebridge_thumbnail.jpg')
+
+
+
         
     def start_camera(self):
         if self.persistent_data['streaming']:
@@ -502,20 +527,8 @@ class HomebridgeAdapter(Adapter):
             
         else:
             if self.DEBUG:
-                print("not using doorbell button")
+                print("not using GPIO doorbell button")
 
-
-    def stop_camera(self):
-        if self.DEBUG:
-            print("in stop_camera")
-        if self.stream_process != None:
-            self.stream_process.terminate()
-            time.sleep(2)
-        os.system('pkill mediamtx')
-        time.sleep(1)
-        self.stream_process = None
-        self.c = None
-        os.system('cp ' + str(self.not_streaming_thumbnail_path) + ' /tmp/homebridge_thumbnail.jpg')
 
 
 
@@ -564,9 +577,14 @@ class HomebridgeAdapter(Adapter):
         def handler(client_soc):
             #print("in socket handler")
             
-            with open('/tmp/homebridge_thumbnail.jpg', 'rb') as thumbnail_pointer:
+            source_image = '/tmp/homebridge_thumbnail.jpg'
+            if self.persistent_data['privacy_preview']:
+                source_image = self.privacy_streaming_thumbnail_path
+            
+            
+            with open(source_image, 'rb') as thumbnail_pointer:
                 #self.hb_config_data = json.load(f)
-                thumbnail_pointer = open('/tmp/homebridge_thumbnail.jpg', 'rb')
+                #thumbnail_pointer = open('/tmp/homebridge_thumbnail.jpg', 'rb')
                 thumbnail_data = thumbnail_pointer.read()
                 thumbnail_size = len(thumbnail_data)
                 #print("thumbnail size: " + str(thumbnail_size))
@@ -636,15 +654,15 @@ class HomebridgeAdapter(Adapter):
             time.sleep(1)
             if self.last_thumbnail_time + self.thumbnail_interval < time.time():
                 self.last_thumbnail_time = time.time()
-                if self.persistent_data['streaming']:
-                    if self.DEBUG:
-                        print("taking a thumbnail from the stream")
+                print("self.persistent_data['privacy_preview']: " + str(self.persistent_data['privacy_preview']))
+                if self.persistent_data['streaming'] and not self.persistent_data['privacy_preview']:
+                    #if self.DEBUG:
+                    #    print("taking a thumbnail from the stream")
                     # alternative ffmpeg log level is warning
+                    
                     thumbnail_command = 'ffmpeg -hide_banner -loglevel panic -i rtsp://localhost:' + str(self.rtsp_port) + '/pi -frames:v 1 -y /tmp/homebridge_thumbnail.jpg'
                     shell(thumbnail_command)
-                else:
-                    if self.DEBUG:
-                        print("not streaming, so not making a thumbnail")
+                    
                         
         os.system('cp ' + str(self.not_streaming_thumbnail_path) + ' /tmp/homebridge_thumbnail.jpg')
         if self.DEBUG:
@@ -740,6 +758,28 @@ class HomebridgeAdapter(Adapter):
         
         except Exception as ex:
             print("error in set_camera_resolution: " + str(ex))
+            
+            
+    # Thing: toggle privacy protecting preview image
+    def set_privacy_preview(self,state):
+        try:
+            print("in set_privacy_preview with value: " + str(state))
+        
+            # saves the new state in the persistent data file, so that the addon can restore the correct state if it restarts
+            if state != self.persistent_data['privacy_preview']:
+                self.persistent_data['privacy_preview'] = state
+                self.save_persistent_data() 
+        
+            try:
+                self.devices['homebridge-thing'].properties['privacy_preview'].update( self.persistent_data['privacy_preview'] )
+            except Exception as ex:
+                print("error setting privacy_preview on thing: " + str(ex))
+        
+        except Exception as ex:
+            if self.DEBUG:
+                print("error in set_privacy_preview: " + str(ex))
+            
+            
             
     
     # INSTALL
@@ -942,6 +982,7 @@ class HomebridgeAdapter(Adapter):
                                                 self.hb_config_data['platforms'][i]['cameras'][0]['videoConfig']['maxWidth'] = 1920
                                                 self.hb_config_data['platforms'][i]['cameras'][0]['videoConfig']['maxHeight'] = 1080
                                                 self.hb_config_data['platforms'][i]['cameras'][0]['videoConfig']['maxFPS'] = 4
+                                                
                                                 #self.camera_config['cameras'][0]['videoConfig']['maxWidth'] = 1920
                                                 #self.camera_config['cameras'][0]['videoConfig']['maxHeight'] = 1080
                                                 #self.camera_config['cameras'][0]['videoConfig']['maxFPS'] = 4
@@ -950,8 +991,9 @@ class HomebridgeAdapter(Adapter):
                                             # should the camera be separated from the other devices? This speeds up everything, but requires a separate pairing process
                                             self.hb_config_data['platforms'][i]['cameras'][0]['unbridge'] = self.unbridge_camera
                                         
+                                            self.hb_config_data['platforms'][i]['cameras'][0]['videoConfig']['debug'] = self.DEBUG
                                             # Should there be /should if be possible to ring the doorbell (via http request)?
-                                            self.hb_config_data['platforms'][i]['cameras'][0]['doorbell'] = self.use_doorbell_button
+                                            #self.hb_config_data['platforms'][i]['cameras'][0]['doorbell'] = self.use_doorbell_button # is now always true
                                         except Exception as ex:
                                             if self.DEBUG:
                                                 print("Error modifying camera settings in config file: " + str(ex))

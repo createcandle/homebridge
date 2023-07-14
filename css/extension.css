@@ -369,6 +369,27 @@ body #extension-homebridge-view .extension-homebridge-tab-selected {
     margin-top:8rem;
 }
 
+.extension-homebridge-two-column{
+    display:flex;
+    margin:3rem 0;
+    box-sizing:border-box;
+}
+
+.extension-homebridge-two-column > div:nth-child(odd) {
+    margin-right:1rem;
+    width:calc(50% - 1rem);
+}
+.extension-homebridge-two-column > div:nth-child(even) {
+    margin-left:1rem;
+    width:calc(50% - 1rem);
+}
+
+.extension-homebridge-two-column img{
+    width:auto;
+    max-width:100%;
+    border-radius:.5rem;
+}
+
 /*  SECOND PAGE  */
 
 

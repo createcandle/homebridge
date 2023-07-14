@@ -239,8 +239,8 @@ paths:
 
   pi:
     source: rpiCamera
-    #rpiCameraWidth: 640
-    #rpiCameraHeight: 480
+    rpiCameraWidth: 640
+    rpiCameraHeight: 480
     #rpiCameraFPS: 5
     #runOnInit: ffmpeg -i rtsp://localhost:$RTSP_PORT/$RTSP_PATH -vframes 1 -y /tmp/homebridge_thumbnail.jpg
     #runOnInitRestart: yes

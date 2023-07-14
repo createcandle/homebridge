@@ -1025,12 +1025,6 @@
                             }
                             
                             
-                            
-                            
-                            
-                            
-                            
-                            
                         }
                         else{
                             console.error("this.selected_things was still null. Aborting showing things list.");
@@ -1043,7 +1037,7 @@
                         
                         // Scan for all potential Homekit accessory types this thing could be shared as
                         let possible_accessories = {};
-                        //if(thing_id.indexOf("z2m-0x3425b4fffe90afed") != -1){
+                        //if(thing_id.indexOf("z2m-0x086bd7fffe59a948") != -1){
                             possible_accessories = this.find_accessory(thing_id);
                             if(Object.keys(possible_accessories).length == 0){
                                 //console.warn("device had no potential homekit abilities. Skipping: ", thing_id);
@@ -1808,10 +1802,10 @@
                     
                     
                     let potentials = {};
-                    
+                    let thing_title = this.all_things[i]['title']
                     
                     console.log("\n\n\n\n\n=\n==\n===");
-                    console.log("thing title: ", this.all_things[i]['title']);
+                    console.log("thing title: ", thing_title);
                     
                     
                     /*
@@ -1887,7 +1881,8 @@
                             if(typeof schema.webthings_type != 'undefined' && typeof dev['@type'] != 'undefined'){
                                 
                                 for(let w=0; w<schema.webthings_type.length; w++){ // loop over multiple allowed thing capabilities for this accessory type
-                                    if(dev['@type'].indexOf(schema.webthings_type[w]) > -1){
+
+                                    if(dev['@type'].indexOf(schema.webthings_type[w]) > -1  || (thing_title.toLowerCase().endsWith(' light') && schema.homekit_type == 'lightbulb') ){
                                         //console.log("thing capability match with this homekit schema: ", schema.homekit_type);
                                         
                                         //console.log("this schema has x required properties: ", schema.required.length);
@@ -1949,7 +1944,7 @@
                                                     let prop = this.all_things[i]['properties'][key_id];
                                                     var might_work = 0;
                                                 
-                                                    console.log("prop: ", prop);
+                                                    //console.log("prop: ", prop);
                                                 
                                                     // compare property @types if possible, since that's the best possible match
                                                     if(typeof schema[serv_type][r]['property_at_type'] != 'undefined' && typeof prop['@type'] != 'undefined'){
@@ -1967,8 +1962,8 @@
                                                     // If there is no @type match, it might still be the correct property
                                                     if(might_work == 0 && typeof schema[serv_type][r]['property_at_type'] == 'undefined'){
                                                         
-                                                        console.log(serv_type + " schema has no @type defined: ", key_id, schema[serv_type][r]);
-                                                        console.log("prop:", prop);
+                                                        //console.log(serv_type + " schema has no @type defined: ", key_id, schema[serv_type][r]);
+                                                        //console.log("prop:", prop);
                                                         
                                                         // Look for NAME
                                                         if(typeof schema[serv_type][r]['property_name'] != 'undefined'){
@@ -1997,35 +1992,35 @@
                                                         
                                                         // handle a VARIABLE TYPE indicator in the schema. E.g. "boolean" or "integer"
                                                         if(typeof schema[serv_type][r]['required_variable'] != 'undefined'){
-                                                            console.log("required variable is set: ", schema[serv_type][r]['required_variable']);
+                                                            //console.log("required variable is set: ", schema[serv_type][r]['required_variable']);
                                                             // Complicated method of testing if enum strings that homekit needs are available in the property
                                                             if(schema[serv_type][r]['required_variable'] == 'enum' && typeof prop['enum'] != 'undefined'){
-                                                                console.log("enum spotted in property");
+                                                                //console.log("enum spotted in property");
                                                                 
                                                                 if(typeof schema[serv_type][r]['extra_attributes'] != 'undefined'){
                                                                     if(Object.keys(schema[serv_type][r]['extra_attributes']).length == 1){
                                                                         let enum_test_key = Object.keys(schema[serv_type][r]['extra_attributes'])[0];
-                                                                        console.log("enum_test_key: ", enum_test_key);
+                                                                        //console.log("enum_test_key: ", enum_test_key);
                                                                         if (Symbol.iterator in Object(schema[serv_type][r]['extra_attributes'][enum_test_key])) {
-                                                                            console.log("extra is single iterable");
+                                                                            //console.log("extra is single iterable");
                                                                             var all_in_enum = true;
                                                                             for(let p=0;p<schema[serv_type][r]['extra_attributes'][enum_test_key].length;p++){
                                                                                 let enum_item = schema[serv_type][r]['extra_attributes'][enum_test_key][p];
-                                                                                console.log("enum_item: ", enum_item);
+                                                                                //console.log("enum_item: ", enum_item);
                                                                                 if(prop['enum'].indexOf(enum_item) == -1){
-                                                                                    console.error("not found in enum: ", enum_item, prop['enum']);
+                                                                                    console.log("not found in enum: ", enum_item, prop['enum']);
                                                                                     all_in_enum = false;
                                                                                     might_work = -3;
                                                                                     break;
                                                                                 }
                                                                             }
                                                                             if(all_in_enum){
-                                                                                console.log("all_in_enum?", all_in_enum);
+                                                                                //console.log("all_in_enum?", all_in_enum);
                                                                                 might_work++;
                                                                                 might_work++;
                                                                             }
                                                                             else{
-                                                                                console.log("not all in enum");
+                                                                                //console.log("not all in enum");
                                                                             }
                                                                         }
                                                                         else{
@@ -2045,12 +2040,12 @@
                                                             }
                                                             // test for all types except enum
                                                             else if(prop['type'] == schema[serv_type][r]['required_variable']){
-                                                                console.log("property required variable type match: ", prop['type']);
+                                                                //console.log("property required variable type match: ", prop['type']);
                                                                 might_work++;
                                                                 might_work++;
                                                             }
                                                             else{
-                                                                console.log('wrong variable type: ' + prop['type']);
+                                                                //console.log('wrong variable type: ' + prop['type']);
                                                                 might_work = -3; // can negate an earlier title match
                                                             }
                                                         }

@@ -38,13 +38,13 @@
           "type": "boolean",
           "description": "If you have connected a button to your Raspberry Pi's GPIO pins, then you can have that button act as a doorbell button. This assumes you have also connected a Raspberry Pi camera, as the doorbell functionality is tied to the camera stream. You can change the default button pin (17) to something else under advanced settings. By default the doorbell button is disabled."
         },
-        "Separate the camera": {
-          "type": "boolean",
-          "description": "If you have the camera plugin enabled, and you notice that things are responsing slowly, this could be because of a running camera stream. If you 'separate' the camera from the other devices it should speed things up, but it also means you have to separately pair the camera with your Homekit controller. The default is to not separate the camera."
-        },
         "Doorbell button GPIO pin": {
           "type": "integer",
           "description": "Advanced. Which BCM GPIO pin on your Raspberry Pi board is the doorbell button connected to? The default is 17, as the (recommended) 2-mic ReSpeaker hat's button is connected to that pin."
+        },
+        "Separate the camera": {
+          "type": "boolean",
+          "description": "If you have the camera plugin enabled, and you notice that things are responsing slowly, this could be because of a running camera stream. If you 'separate' the camera from the other devices it should speed things up, but it also means you have to separately pair the camera with your Homekit controller. The default is to not separate the camera."
         },
         "Debugging": {
           "type": "boolean",
@@ -56,7 +56,7 @@
     }
   },
   "short_name": "homebridge",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "web_accessible_resources": [
     "css/*.css",
     "images/*.svg",
