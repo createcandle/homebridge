@@ -27,11 +27,11 @@
             
             this.pin_code = "";
             
-            
+            /*
             API.getThings().then((things) => {
                 console.log('Homebridge:API: things: ', things);
             });
-            /*
+            
             API.getThing('energyuse').then((thing) => {
                 console.log('Homebridge:API: thing: ', thing);
             });
@@ -260,7 +260,7 @@
     				
                         // re-create the interval that checks if Homebridge has started
                         this.interval = setInterval( () => {
-                            console.log("reset interval timer");
+                            //console.log("reset interval timer");
                             this.get_init_data();
                         },5000);
                     
@@ -1037,7 +1037,7 @@
                         
                         // Scan for all potential Homekit accessory types this thing could be shared as
                         let possible_accessories = {};
-                        //if(thing_id.indexOf("z2m-0x086bd7fffe59a948") != -1){
+                        //if(thing_id.indexOf("z2m-0x086") != -1){
                             possible_accessories = this.find_accessory(thing_id);
                             if(Object.keys(possible_accessories).length == 0){
                                 //console.warn("device had no potential homekit abilities. Skipping: ", thing_id);
@@ -1187,16 +1187,6 @@
         // A helper method to find the most optimal/likely Homekit accessory types
  
         find_accessory(thing_id){
-            
-            // accessory mapping of minimally required properties/services
-            /*
-            const ac_map = {"light":{"required":"on_off","optional":"brightness"},
-                            "switch"{"required":"on_off"},
-            }
-            */
-            //const ac_map = {"light":{"required":"on_off","optional":"brightness"},
-            //            "switch"{"required":"on_off"},
-            //}
             
             const ac_map = [
                 
@@ -1804,66 +1794,10 @@
                     let potentials = {};
                     let thing_title = this.all_things[i]['title']
                     
-                    console.log("\n\n\n\n\n=\n==\n===");
-                    console.log("thing title: ", thing_title);
-                    
-                    
-                    /*
-                        
-                {
-                    "homekit_type":"airQualitySensor",
-                    "webthings_type":["AirQualitySensor"],
-                    "preference_score":90,
-                    "required":
-                    [
-                        {
-                            "property_name":"quality",
-                            "config_names":["getAirQuality"],
-                            "required_variable":"enum",
-                            "extra_attributes":{"targetAirPurifierStateValues":["unknown","excellent","good","poor","moderate","unhealthy"]}
-                        }
-                    ],
-                    "optional":[
-                        {
-                            "property_at_type":"DensityProperty",
-                            "property_name":"filter",
-                            "config_names":["getPM2_5Density"],
-                        },
-                        {
-                            "property_at_type":"ConcentrationProperty",
-                            "config_names":["getAirQualityPPM"],
-                            "required_unit":"ppm",
-                        },
-                        {
-                            "property_name":"voc",
-                            "config_names":["getVOCDensity"]
-                        },
-                        {
-                            "property_name":"co2",
-                            "config_names":["getCarbonDioxideLevel"]
-                        },
-                        {
-                            "property_name":"nox",
-                            "config_names":["getNitrogenDioxideDensity"]
-                        },
-                        {
-                            "property_at_type":"TemperatureProperty",
-                            "property_name":"temperature",
-                            "config_names":["getCurrentTemperature"]
-                        },
-                        {
-                            "property_at_type":"HumidityProperty",
-                            "property_name":"humidity",
-                            "config_names":["getCurrentRelativeHumidity"],
-                            "required_unit":"percentage",
-                            "required_variable":"integer",
-                        }
-                    
-                    ]
-                },
-                        
-                    */
-                    
+                    if(this.debug){
+                        console.log("\n\n\n\n\n=\n==\n===");
+                        console.log("thing title: ", thing_title);
+                    }
                     
                     
                     for(let m=0;m<ac_map.length;m++){
@@ -1918,8 +1852,10 @@
                                                 //console.log("schema[serv_type][" + r + "] prop: ", schema[serv_type][r]);
                                                 //schema[serv_type][r];
                                             
-                                                console.log(".\n.\n", serv_type);
-                                                console.log(schema[serv_type][r]);
+                                                if(this.debug){
+                                                    console.log(".\n.\n", serv_type);
+                                                    console.log(schema[serv_type][r]);
+                                                }
                                                 
                                                 // LOOP OVER THING PROPERTIES
                                                 // loop over all the properties to make sure the required properties to pipe to Homekit endpoints are available
@@ -1948,9 +1884,9 @@
                                                 
                                                     // compare property @types if possible, since that's the best possible match
                                                     if(typeof schema[serv_type][r]['property_at_type'] != 'undefined' && typeof prop['@type'] != 'undefined'){
-                                                        console.log(serv_type + "  schema and prop have @type defined: ", schema[serv_type][r]['property_at_type'], prop['@type']);
+                                                        //console.log(serv_type + "  schema and prop have @type defined: ", schema[serv_type][r]['property_at_type'], prop['@type']);
                                                         if(schema[serv_type][r]['property_at_type'] == prop['@type']){
-                                                            console.log("required property @type match: ", prop['@type']);
+                                                            //console.log("required property @type match: ", prop['@type']);
                                                             
                                                             if(used_property_at_types.indexOf(prop['@type']) == -1){ // make sure each property @type is only counted once...
                                                                 used_property_at_types.push(prop['@type']);
@@ -1968,7 +1904,7 @@
                                                         // Look for NAME
                                                         if(typeof schema[serv_type][r]['property_name'] != 'undefined'){
                                                             if(prop['title'].toLowerCase().indexOf(schema[serv_type][r]['property_name']) > -1){
-                                                                console.log('(partial) name match: ', prop['title'], schema[serv_type][r]['property_name']);
+                                                                //console.log('(partial) name match: ', prop['title'], schema[serv_type][r]['property_name']);
                                                                 might_work++;
                                                                 might_work++;
                                                             }
@@ -1980,9 +1916,9 @@
                                                         // Look for UNIT.  
                                                         // Checking for unit string might be finicky, as even within the webthings standard there are multiple ways to decribe these string (e.g. "percentage" and "%")
                                                         if(typeof schema[serv_type][r]['required_unit'] != 'undefined' && typeof prop['unit'] != 'undefined'){
-                                                            console.log("required unit is set: ", schema[serv_type][r]['required_unit']);
+                                                            //console.log("required unit is set: ", schema[serv_type][r]['required_unit']);
                                                             if( prop['unit'].toLowerCase() == schema[serv_type][r]['required_unit'].toLowerCase() ){
-                                                                console.log("perfect unit match: ", prop['unit']);
+                                                                //console.log("perfect unit match: ", prop['unit']);
                                                                 might_work++;
                                                             }
                                                             else{
@@ -2008,7 +1944,9 @@
                                                                                 let enum_item = schema[serv_type][r]['extra_attributes'][enum_test_key][p];
                                                                                 //console.log("enum_item: ", enum_item);
                                                                                 if(prop['enum'].indexOf(enum_item) == -1){
-                                                                                    console.log("not found in enum: ", enum_item, prop['enum']);
+                                                                                    if(this.debug){
+                                                                                        console.log("not found in enum: ", enum_item, prop['enum']);
+                                                                                    }
                                                                                     all_in_enum = false;
                                                                                     might_work = -3;
                                                                                     break;
@@ -2069,7 +2007,7 @@
                                                        
                                                         if(!endpoint_already_taken){
                                                             if(serv_type == 'required'){
-                                                                console.log("increasing matched_required_properties");
+                                                                //console.log("increasing matched_required_properties");
                                                                 matched_required_properties++;
                                                             }
                                                             //console.error(schema.homekit_type, " matched_required_properties: " +  matched_required_properties + " of " + schema.required.length);
@@ -2106,14 +2044,18 @@
                                         }
                                         
                                         // isn't serv_type always "required" when we arrive here?
-                                        console.log("\n\n------------- WHAT DID WE GET? -------------");
+                                        //console.log("\n\n------------- WHAT DID WE GET? -------------");
                                         if(serv_type == 'required'){
                                             if(matched_required_properties == schema[serv_type].length){
-                                                console.warn(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties, potent);
+                                                if(this.debug){
+                                                    console.warn(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties, potent);
+                                                }
                                                 potentials[schema.homekit_type] = potent;
                                             }
                                             else{
-                                                console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length, potent);
+                                                if(this.debug){
+                                                    console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length, potent);
+                                                }
                                                 //console.log("XXX filled_endpoints: ", filled_endpoints);
                                                 if(missing_required_endpoints.length > 0 && filled_endpoints.length > 0){ // make sure we're on the last run of the for loop that goes over required properties/endpoints
                                                     
@@ -2129,21 +2071,23 @@
                                                     //for(let h=0;h<potent['services'].length;h++){
                                                     //    filled_endpoints.push( potent['services'][h]['config_name'] );
                                                     //}
-                                                    console.log("hacking: filled_endpoints: ", filled_endpoints);
-                                                    console.log("missing_required_endpoints: ", missing_required_endpoints);
+                                                    //console.log("hacking: filled_endpoints: ", filled_endpoints);
+                                                    //console.log("missing_required_endpoints: ", missing_required_endpoints);
                                                     
                                                     // Go over all missing endpoints
                                                     var hacks_count = 0;
                                                     for(let m=0;m<missing_required_endpoints.length;m++){
                                                         const missing = missing_required_endpoints[m];
-                                                        console.log(schema.homekit_type, "  has missing: ", missing, ' perhaps reconstruct from ', filled_endpoints);
+                                                        //console.log(schema.homekit_type, "  has missing: ", missing, ' perhaps reconstruct from ', filled_endpoints);
                                                 
-                                                        console.log("schema.homekit_type: ", schema.homekit_type);
+                                                        //console.log("schema.homekit_type: ", schema.homekit_type);
                                                     
                                                         // airQualitySensor opinion
                                                         if(schema.homekit_type == 'airQualitySensor'){
                                                             if(missing == 'getAirQuality' && filled_endpoints.indexOf('getPM2_5Density') > -1){
-                                                                console.log("Hacking: could calculate air quality opinion on the fly from pm25");
+                                                                if(this.debug){
+                                                                    console.log("Hacking: could calculate air quality opinion on the fly from pm25");
+                                                                }
                                                                 const hackname = 'generate-' + hacks_count;
                                                                 potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
                                                                 potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,10,20,40,100] }} );
@@ -2152,7 +2096,9 @@
                                                             }
                                                         
                                                             else if(missing == 'getAirQuality' && filled_endpoints.indexOf('getCarbonDioxideLevel') > -1){
-                                                                console.log("Hacking: could calculate air quality opinion on the fly from carbon dioxide level");
+                                                                if(this.debug){
+                                                                    console.log("Hacking: could calculate air quality opinion on the fly from carbon dioxide level");
+                                                                }
                                                                 potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
                                                                 const hackname = 'generate-' + hacks_count;
                                                                 potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,600,800,1000,1500] }} );
@@ -2165,7 +2111,9 @@
                                                         else if(schema.homekit_type == 'carbonDioxideSensor'){
                                                             
                                                             if(missing == 'getCarbonDioxideDetected' && filled_endpoints.indexOf('getCarbonDioxideLevel') > -1){
-                                                                console.log("Hacking: could calculate carbon dioxide quality opinion on the fly from carbon dioxide level");
+                                                                if(this.debug){
+                                                                    console.log("Hacking: could calculate carbon dioxide quality opinion on the fly from carbon dioxide level");
+                                                                }
                                                                 potent['services'].push( {'config_name':'getCarbonDioxideDetected',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
                                                                 const hackname = 'generate-' + hacks_count;
                                                                 potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[0,1000] }} );
@@ -2176,11 +2124,15 @@
                                                         }
                                                     }
                                                     if(hacks_count == missing_required_endpoints.length){
-                                                        console.log("Hurray found enough hacks to complete the device: ", hacks_count);
+                                                        if(this.debug){
+                                                            console.log("Found enough hacks to complete the device: ", hacks_count);
+                                                        }
                                                         potentials[schema.homekit_type] = potent;
                                                     
                                                     }else{
-                                                        console.warn('not enough hacks found to complete the device: ', hacks_count, " of ", missing_required_endpoints.length, missing_required_endpoints);
+                                                        if(this.debug){
+                                                            console.warn('not enough hacks found to complete the device: ', hacks_count, " of ", missing_required_endpoints.length, missing_required_endpoints);
+                                                        }
                                                     }
                                                     
                                                 }
