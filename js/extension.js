@@ -25,12 +25,13 @@
               'homebridge-server',
             ];
             
+            this.pin_code = "";
             
-            /*
+            
             API.getThings().then((things) => {
                 console.log('Homebridge:API: things: ', things);
             });
-      
+            /*
             API.getThing('energyuse').then((thing) => {
                 console.log('Homebridge:API: thing: ', thing);
             });
@@ -111,9 +112,12 @@
                     }
                 
                     document.getElementById('extension-homebridge-save-things-button').classList.add('extension-homebridge-hidden');
+                    document.getElementById('extension-homebridge-save-things-hint').style.display = 'block';
+                    
                     setTimeout(() => {
+                        document.getElementById('extension-homebridge-save-things-hint').style.display = 'none';
                         document.getElementById('extension-homebridge-save-things-button').classList.remove('extension-homebridge-hidden');
-                    }, "3000");
+                    }, "10000");
                 
                     var selected_things = [];
                 
@@ -136,7 +140,7 @@
                         
                             let options_checkboxes = all_thing_items[i].querySelectorAll(".extension-homebridge-thing-options-checkbox:checked");
                             for(var k=0; k<options_checkboxes.length; k++){
-                                console.log("checkbox: ", options_checkboxes[k]);
+                                //console.log("checkbox: ", options_checkboxes[k]);
                                 let thing_id = options_checkboxes[k].getAttribute('data-thing_id');
                                 let accessory_type = options_checkboxes[k].getAttribute('data-accessory_type');
                                 let accessory_data = this.all_potentials[thing_id][accessory_type];
@@ -175,9 +179,8 @@
 			
     		        }).catch((e) => {
     		  			console.log("Homebridge: error saving things list: ", e);
-    		        });	
-                
-                
+    		        });
+                    
                 });
             
             
@@ -235,8 +238,67 @@
                     this.show();
     			});
             
+                // Share camera button
+    			document.getElementById('extension-homebridge-install-camera-button').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("share camera button clicked")
+                    }
+                    this.request_plugin_install("homebridge-camera-ffmpeg");
+                    document.getElementById('extension-homebridge-manual-add-tutorial-container').style.display = 'block';
+    			});
+                
+                
+                // RESET BUTTON
+                document.getElementById('extension-homebridge-reset-button').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("clicked on reset button");
+                    }
+                    if(confirm("Are you sure you want to reset Homebridge?")){
+                        document.getElementById('extension-homebridge-reset-button').style.display = 'none';
+                        document.getElementById('extension-homebridge-doing-reset-hint').style.display = 'block';
+                        document.getElementById('extension-homebridge-content-container').classList.add('extension-homebridge-not-launched-yet');
+    				
+                        // re-create the interval that checks if Homebridge has started
+                        this.interval = setInterval( () => {
+                            console.log("reset interval timer");
+                            this.get_init_data();
+                        },5000);
+                    
+                        window.API.postJson(
+        					`/extensions/${this.id}/api/ajax`,
+        					{'action':'reset_homebridge'}
+                    
+        				).then((body) => {
+                            if(this.debug){
+                                console.log("Homebridge reset response: ", body);
+                            }
+                            if(body.state == true){
+                                document.getElementById('extension-homebridge-doing-reset-hint').innerText = "Reset complete. Homebridge is stopped.";
+                            
+                                document.getElementById('extension-homebridge-reset-restart-container').style.display = 'block';
+                            }
+                            else{
+                                alert("Homebridge reset failed?");
+                            }
+        				}).catch((e) => {
+        					console.log("homebridge: connnection error after while requesting reset: ", e);
+                            alert("Connnection error while requesting reset");
+        				});
+                    }
+                    
+    			});
+                
+                
+                // Restart after reset button
+    			document.getElementById('extension-homebridge-reset-restart-button').addEventListener('click', (event) => {
+                    if(this.debug){
+                        console.log("clicked on restart HB button");
+                    }
+                    this.start_homebridge();
+    			});
+                
             
-                // SEARCH BUTTON
+                // SEARCH PLUGINS BUTTON
                 document.getElementById('extension-homebridge-search-button').addEventListener('click', (event) => {
                     if(this.debug){
                         console.log("clicked on search button");
@@ -392,11 +454,16 @@
                             }
                         }
                         
+                        
+                        if(typeof body.hb_name != 'undefined'){
+                            document.getElementById('extension-homebridge-name').innerText = body.hb_name;
+                        }
+                        
                         if(typeof body.launched != 'undefined'){
                             this.launched = body.launched;
                             if(body.launched == true){
                                 if(this.debug){
-                                    //console.log("Homebridge launched");
+                                    console.log("Homebridge launched");
                                 }
                             
                                 // This will reveal all the elements that are only available once Homebridge is running
@@ -406,7 +473,6 @@
                                 var config_url = "http://" + body.config_ip + ":" + body.config_port + "/plugins";
                                 document.getElementById('extension-homebridge-config-ui-link').href = config_url;
                                 document.getElementById('extension-homebridge-main-launched').style.display = 'block';
-                                
                                 
                                 // Display the url
                                 var readable_config_url = config_url;
@@ -484,7 +550,11 @@
                         
                         }
                     
-                        
+                        if(typeof body.pi_camera_plugin_installed != 'undefined'){
+                            if(!body.pi_camera_plugin_installed){
+                                document.getElementById('extension-homebridge-camera-detected-container').classList.remove("extension-homebridge-hidden");
+                            }
+                        }
                         
                     
                         /*
@@ -616,6 +686,8 @@
                                         // Remove the item form the list, or regenerate the entire list instead
                                         // parent4.removeChild(parent3);
                                     }
+                                    //this.show_plugins();
+                                    this.get_init_data();
 
         						}).catch((e) => {
         							console.log("homebridge: error in delete items handler: ", e);
@@ -751,30 +823,7 @@
                             //this_btn.closest('.extension-homebridge-search-item').innerHTML = "<h3>Installing " + plugin_name + "...</h3><p>This should take a few minutes. Once complete you will have to restart Homebridge for plugins to load.</p>";
                             //this_btn.closest('.extension-homebridge-search-item').classList.add('extension-homebridge-search-item-being-installed');
                         
-            		  		// Get_pin
-            		        window.API.postJson(
-            		          `/extensions/${this.id}/api/ajax`,
-                                {
-                                'action':'install_plugin',
-                                'name':plugin_name,
-                                'version':'@latest'
-                                }
-
-            		        ).then((body) => {
-                                if(this.debug){
-                                    console.log("install_plugin response: ", body);
-                                }
-                                
-                                if(body.state == true){
-                                    alert(plugin_name + " installed succesfully");
-                                }
-                                else{
-                                    alert(plugin_name + " installation failed!");
-                                }
-				
-            		        }).catch((e) => {
-            		  			console.log("Error calling install_plugin: ", e);
-            		        });
+            		        this.request_install(plugin_name);
                         
     			        });
                         const button_container_div = document.createElement('div');
@@ -800,6 +849,52 @@
         
         }
  
+ 
+ 
+        request_plugin_install(plugin_name){
+            
+	        window.API.postJson(
+	          `/extensions/${this.id}/api/ajax`,
+                {
+                'action':'install_plugin',
+                'name':plugin_name,
+                'version':'@latest'
+                }
+
+	        ).then((body) => {
+                if(this.debug){
+                    console.log("install_plugin response: ", body);
+                }
+                
+                if(body.state == true){
+                    //alert(plugin_name + " installed succesfully");
+                    
+                    if(typeof body.pin != 'undefined'){
+                        
+                        let pin_string = body.pin.toString();
+                        
+                        this.pin_code = pin_string;
+                        if(pin_string.length == 8){
+                            this.pin_code = pin_string.substring(0,3) + " - " + pin_string.substring(4,7);
+                        }
+                        
+                        // Show pin code under the QR code
+                        document.getElementById('extension-homebridge-pairing-pin-code').innerText = this.pin_code;
+                    }
+                    
+                }
+                else{
+                    alert(plugin_name + " installation failed!");
+                }
+
+                //this.show_plugins();
+                this.get_init_data();
+                
+	        }).catch((e) => {
+	  			console.log("Error calling install_plugin: ", e);
+	        });
+            
+        }
  
  
  
@@ -890,6 +985,7 @@
                         var options_el = document.createElement('div');
                         options_el.classList.add('extension-homebridge-thing-options');
                         options_el.innerHTML = '<p class="extension-homebridge-thing-options-hint">Share as:</p>';
+                        
                         // select
                         /*
                         var select_el = document.createElement('select');
@@ -945,8 +1041,10 @@
                         //}
                         
                         
-                        //if(thing_id.indexOf("z2m-0xa4c138a9b75f7c4c") != -1){
-                            let possible_accessories = this.find_accessory(thing_id);
+                        // Scan for all potential Homekit accessory types this thing could be shared as
+                        let possible_accessories = {};
+                        //if(thing_id.indexOf("z2m-0x3425b4fffe90afed") != -1){
+                            possible_accessories = this.find_accessory(thing_id);
                             if(Object.keys(possible_accessories).length == 0){
                                 //console.warn("device had no potential homekit abilities. Skipping: ", thing_id);
                                 continue;
@@ -955,6 +1053,7 @@
                         //}
                         //console.log("\n\n\n--------------")
                         //console.log("possible_accessories: ", possible_accessories);
+                        
                         var highest_preference_count_so_far = 0;
                         let pos_keys = Object.keys(possible_accessories);
                         var checkboxes_el = document.createElement('div');
@@ -1106,6 +1205,8 @@
             //}
             
             const ac_map = [
+                
+                // Temperature sensor
                 {
                     "homekit_type":"temperatureSensor",
                     "webthings_type":["TemperatureSensor"],
@@ -1119,6 +1220,8 @@
                         }
                     ]
                 },
+                
+                // Humidity sensor
                 {
                     "homekit_type":"humiditySensor",
                     "webthings_type":["HumiditySensor"],
@@ -1134,6 +1237,58 @@
                         }
                     ]
                 },
+                
+                // Weather Station
+                {
+                    "homekit_type":"weatherStation",
+                    "webthings_type":["TemperatureSensor","HumiditySensor","BarometricPressureSensor","MultiLevelSensor"],
+                    "preference_score":50,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"TemperatureProperty",
+                            "property_name":"temperature",
+                            "config_names":["getCurrentTemperature"]
+                        }
+                    ],
+                    "optional":
+                    [
+                        {
+                            "property_at_type":"HumidityProperty",
+                            "property_name":"humidity",
+                            "config_names":["getCurrentRelativeHumidity"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
+                        },
+                        {
+                            "required_unit":"lx",
+                            "read_only":true,
+                            "config_names":["getCurrentAmbientLightLevel"]
+                        },
+                        {
+                            "required_unit":"description",
+                            "read_only":true,
+                            "config_names":["getWeatherCondition"]
+                        },
+                        {
+                            "property_at_type":"BarometricPressureProperty",
+                            "read_only":true,
+                            "config_names":["getAirPressure"]
+                        },
+                        {
+                            "property_name":"wind direction",
+                            "read_only":true,
+                            "config_names":["getWindDirection"]
+                        },
+                        {
+                            "property_name":"wind speed",
+                            "read_only":true,
+                            "config_names":["getWindSpeed"]
+                        }
+                    ]
+                },
+                
+                // Thermostat
                 {
                     "homekit_type":"thermostat",
                     "webthings_type":["Thermostat"],
@@ -1166,6 +1321,36 @@
                         }
                     ]
                 },
+                
+                
+                
+                
+                // carbon Dioxide Sensor
+                {
+                    "homekit_type":"carbonDioxideSensor",
+                    "webthings_type":["AirQualitySensor"],
+                    "preference_score":90,
+                    "required":
+                    [
+                        {
+                            "config_names":["getCarbonDioxideDetected"],
+                            "required_variable":"enum",
+                            "extra_attributes":{"carbonDioxideDetectedValues": [ "ok", "bad" ]}
+                        },
+                        
+                    ],
+                    "optional":[
+                        {
+                            "property_at_type":"ConcentrationProperty",
+                            "config_names":["getCarbonDioxideLevel"],
+                            "required_unit":"ppm",
+                        }
+                    ]
+                },
+                
+                
+                
+                // air Quality Sensor
                 {
                     "homekit_type":"airQualitySensor",
                     "webthings_type":["AirQualitySensor"],
@@ -1176,13 +1361,13 @@
                             "property_name":"quality",
                             "config_names":["getAirQuality"],
                             "required_variable":"enum",
-                            "extra_attributes":{"targetAirPurifierStateValues":["unknown","excellent","good","poor","moderate","unhealthy"]}
+                            "extra_attributes":{"airQualityValues":["unknown","excellent","good","poor","moderate","unhealthy"]}
                         }
                     ],
                     "optional":[
                         {
                             "property_at_type":"DensityProperty",
-                            "property_name":"filter",
+                            "property_name":"2",
                             "config_names":["getPM2_5Density"],
                         },
                         {
@@ -1217,6 +1402,8 @@
                     
                     ]
                 },
+                
+                // air Purifier
                 {
                     "homekit_type":"airPurifier",
                     "webthings_type":["OnOffSwitch"],
@@ -1256,15 +1443,20 @@
                             "property_name":"speed",
                             "config_names":["getRotationSpeed","setRotationSpeed"]
                         },
+                        /*
                         {
                             "property_name":"filter age",
-                            "config_names":["getFilterLifeLevel"]
+                            "config_names":["getFilterLifeLevel"], // has to percentage of life remaining. Which depends on the device?
+                            "required_variable":"integer",
                         }
+                        */
                     ]
                 },
+                
+                // lightBulb
                 {
                     "homekit_type":"lightbulb",
-                    "webthings_type":["Light","ColorControl"],
+                    "webthings_type":["Light","MultiLevelSwitch","ColorControl"],
                     "preference_score":100,
                     "required":
                     [
@@ -1282,6 +1474,14 @@
                             "required_unit":"percentage",
                             "required_variable":"integer",
                         },
+                        // Radio hack
+                        {
+                            "property_at_type":"LevelProperty",
+                            "property_name":"volume",
+                            "config_names":["getBrightness","setBrightness"],
+                            "required_unit":"percentage",
+                            "required_variable":"integer",
+                        },
                         {
                             "property_at_type":"ColorProperty",
                             "property_name":"color",
@@ -1291,6 +1491,8 @@
                         }
                     ]
                 },
+                
+                // Light sensor
                 {
                     "homekit_type":"lightSensor",
                     "webthings_type":["MultiLevelSensor"],
@@ -1298,11 +1500,14 @@
                     "required":
                     [
                         {
-                            "required_unit":"lux",
-                            "read_only":true
+                            "required_unit":"lx",
+                            "read_only":true,
+                            "config_names":["getCurrentAmbientLightLevel"]
                         },
                     ]
                 },
+                
+                // Lock
                 {
                     "homekit_type":"lockMechanism",
                     "webthings_type":["Lock"],
@@ -1316,6 +1521,41 @@
                         }
                     ]
                 },
+                
+                // Window
+                // technically all these properties are required...
+                {
+                    "homekit_type":"window",
+                    "webthings_type":["MultiLevelSwitch"],
+                    "preference_score":70,
+                    "required":
+                    [
+                        {
+                            "property_name":"state",
+                            "config_names":["getPositionState"],
+                            "extra_attributes":{"minPosition": 0,"maxPosition": 100, "positionStateValues": [ "OPEN", "CLOSE", "STOP" ]}
+                        },
+                        {
+                            "property_at_type":"LevelProperty",
+                            "property_name":"position",
+                            "config_names":["getCurrentPosition","setTargetPosition"],
+                            "required_variable":"integer"
+                        },
+                        {
+                            "property_name":"hold",
+                            "config_names":["setHoldPosition"],
+                            "required_variable":"boolean"
+                        },
+                        {
+                            "property_name":"obstruction", // obstruction
+                            "config_names":["getObstructionDetected"],
+                            "required_variable":"boolean",
+                            "read_only":true
+                        }
+                    ]
+                },
+                
+                // Garage door opener
                 {
                     "homekit_type":"garageDoorOpener",
                     "webthings_type":["OnOffSwitch"],
@@ -1329,6 +1569,9 @@
                         }
                     ]
                 },
+                
+                // Doorbell
+                /*
                 {
                     "homekit_type":"doorbell",
                     "webthings_type":["PushButton"],
@@ -1339,7 +1582,9 @@
                             "property_at_type":"PushedProperty",
                             "property_name":"state",
                             "config_names":["getSwitch"],
-                            "read_only":true
+                            "read_only":true,
+                            "required_variable":"string",
+                            "extra_attributes":{"switchValues": [ "on", "off", "brightness_move_up" ],"restrictSwitchValues": [0]}
                         }
                     ],
                     "optional":[
@@ -1364,6 +1609,9 @@
                     ]
                 
                 },
+                */
+                
+                // Fan
                 {
                     "homekit_type":"fan",
                     "webthings_type":["OnOffSwitch"],
@@ -1377,6 +1625,8 @@
                         }
                     ]
                 },
+                
+                // Motion sensor
                 {
                     "homekit_type":"motionSensor",
                     "webthings_type":["MotionSensor","BinarySensor"],
@@ -1398,6 +1648,8 @@
                         }
                     ]
                 },
+                
+                // Occupancy sensor
                 {
                     "homekit_type":"occupancySensor",
                     "webthings_type":["BinarySensor","MotionSensor"],
@@ -1419,6 +1671,8 @@
                         }
                     ]
                 },
+                
+                // Contact sensor
                 {
                     "homekit_type":"contactSensor",
                     "webthings_type":["BinarySensor"],
@@ -1440,6 +1694,8 @@
                         }
                     ]
                 },
+                
+                // Switch
                 {
                     "homekit_type":"switch",
                     "webthings_type":["OnOffSwitch","SmartPlug"],
@@ -1453,6 +1709,8 @@
                         }
                     ],
                 },
+                
+                // Outlet
                 {
                     "homekit_type":"outlet",
                     "webthings_type":["OnOffSwitch","SmartPlug"],
@@ -1485,13 +1743,14 @@
                             "required_unit":"ampere",
                         },
                         {
-                            "property_at_type":"",
                             "property_name":"total",
                             "config_names":["getTotalConsumption"],
                             "required_unit":"kwh",
                         },
                     ]
                 },
+                
+                // Smoke sensor
                 {
                     "homekit_type":"smokeSensor",
                     "webthings_type":["SmokeSensor","BinarySensor"],
@@ -1511,10 +1770,35 @@
                             "required_variable":"boolean",
                         }
                     ]
+                },
+                
+                // Speaker
+                // Seems the Homekit app doesn't fully support this
+                /*
+                {
+                    "homekit_type":"speaker",
+                    "webthings_type":["MultiLevelSwitch"],
+                    "preference_score":10,
+                    "required":
+                    [
+                        {
+                            "property_at_type":"OnOffProperty",
+                            "property_name":"playing",
+                            "config_names":["getMute","setMute"]
+                        },
+                        {
+                            "property_at_type":"LevelProperty",
+                            "property_name":"volume",
+                            "config_names":["getVolume","setVolume"],
+                            "required_variable":"integer"
+                        }
+                    ]
                 }
+                */
+                
             ]
             
-            
+                
             
             
             for(let i=0;i<this.all_things.length;i++){
@@ -1525,6 +1809,9 @@
                     
                     let potentials = {};
                     
+                    
+                    console.log("\n\n\n\n\n=\n==\n===");
+                    console.log("thing title: ", this.all_things[i]['title']);
                     
                     
                     /*
@@ -1596,6 +1883,7 @@
                             var all_required_available = true;
                             
                             // Check if there is a capability match
+                            // TODO: could there be devices without useful capabilities that should still be made available to Homekit? E.g. Display
                             if(typeof schema.webthings_type != 'undefined' && typeof dev['@type'] != 'undefined'){
                                 
                                 for(let w=0; w<schema.webthings_type.length; w++){ // loop over multiple allowed thing capabilities for this accessory type
@@ -1608,25 +1896,38 @@
                                         var potent = {"services":[],"extras":[]}; // will hold all the details to go into the final potentials dictionary
                                         var preference_score = schema.preference_score; // the highter the number, the more likely that this is the one the user is looking for
                                         var serv_type = "required";
-                                        const serv = ['optional','required']; // service parts.
+                                        
                                         //console.log("serv.length: ", serv.length);
                                         
+                                        // For hacking later
+                                        //var required_endpoints_list = []; // keep track of the required endpoints Homekit required
+                                        //var found_endpoints_list = []; // keep track of the required endpoints that were found
+                                        var missing_required_endpoints = []; // keep track of the required endpoints that were not found
+                                        var filled_endpoints = [];
+                                        
                                         // Loop over all the potential services
+                                        const serv = ['optional','required']; // service parts.
                                         for(let q=0; q<serv.length; q++){
                                             
-                                            const serv_type = serv[q];
+                                            serv_type = serv[q];
                                             //console.log("serv_type: ", serv_type);
                                             
-                                            if(typeof schema[serv_type] == 'undefined'){
-                                                //console.warn('schema did not have list:', serv_type );
+                                            if(typeof schema[serv_type] == 'undefined'){ // not all Homekit devices have optional endpoints
+                                                //console.warn('schema did not have list:', serv_type ); 
                                                 continue;
                                             }
                                             
-                                            for(let r=0; r<schema[serv_type].length; r++){
+                                            
+                                            // LOOP OVER REQUIRED AND OPTIONAL LISTS
+                                            for(let r=0; r<schema[serv_type].length; r++){ //going over required or optional list of properties
                                                 //console.log("schema[serv_type][" + r + "] prop: ", schema[serv_type][r]);
                                                 //schema[serv_type][r];
                                             
-                                                // loop over all the properties to make sure the required properties are available
+                                                console.log(".\n.\n", serv_type);
+                                                console.log(schema[serv_type][r]);
+                                                
+                                                // LOOP OVER THING PROPERTIES
+                                                // loop over all the properties to make sure the required properties to pipe to Homekit endpoints are available
                                                 for(let j=0;j<Object.keys(this.all_things[i]['properties']).length;j++){
                                                     
                                                     let key_id = Object.keys(this.all_things[i]['properties'])[j];
@@ -1646,33 +1947,33 @@
                                                     }
                                                     
                                                     let prop = this.all_things[i]['properties'][key_id];
-                                                
                                                     var might_work = 0;
                                                 
-                                                    //console.log("prop: ", prop);
+                                                    console.log("prop: ", prop);
                                                 
                                                     // compare property @types if possible, since that's the best possible match
-                                                    if(typeof schema[serv_type][r]['property_at_type'] != 'undefined' && prop['@type'] != 'undefined'){
+                                                    if(typeof schema[serv_type][r]['property_at_type'] != 'undefined' && typeof prop['@type'] != 'undefined'){
+                                                        console.log(serv_type + "  schema and prop have @type defined: ", schema[serv_type][r]['property_at_type'], prop['@type']);
                                                         if(schema[serv_type][r]['property_at_type'] == prop['@type']){
-                                                            //console.log("required property @type match: ", prop['@type']);
+                                                            console.log("required property @type match: ", prop['@type']);
                                                             
                                                             if(used_property_at_types.indexOf(prop['@type']) == -1){ // make sure each property @type is only counted once...
                                                                 used_property_at_types.push(prop['@type']);
-                                                                
                                                                 might_work = 2;
-                                                                
                                                             }
-                                                            
-                                                        
                                                         }
                                                     }
-                                                    else if(typeof schema[serv_type][r]['property_at_type'] == 'undefined'){
+                                                    
+                                                    // If there is no @type match, it might still be the correct property
+                                                    if(might_work == 0 && typeof schema[serv_type][r]['property_at_type'] == 'undefined'){
                                                         
-                                                        //console.log("schema has no @type defined: ", key_id, schema[serv_type][r]);
-                                                        //console.log("prop:", prop);
+                                                        console.log(serv_type + " schema has no @type defined: ", key_id, schema[serv_type][r]);
+                                                        console.log("prop:", prop);
+                                                        
+                                                        // Look for NAME
                                                         if(typeof schema[serv_type][r]['property_name'] != 'undefined'){
                                                             if(prop['title'].toLowerCase().indexOf(schema[serv_type][r]['property_name']) > -1){
-                                                                //console.log('(partial) name match: ', prop['title'], schema[serv_type][r]['property_name']);
+                                                                console.log('(partial) name match: ', prop['title'], schema[serv_type][r]['property_name']);
                                                                 might_work++;
                                                                 might_work++;
                                                             }
@@ -1681,10 +1982,12 @@
                                                             }
                                                         }
                                                         
-                                                        // checking for unit string might be finicky, as even within the webthings standard there are multiple ways to decribe these string (e.g. "percentage" and "%")
+                                                        // Look for UNIT.  
+                                                        // Checking for unit string might be finicky, as even within the webthings standard there are multiple ways to decribe these string (e.g. "percentage" and "%")
                                                         if(typeof schema[serv_type][r]['required_unit'] != 'undefined' && typeof prop['unit'] != 'undefined'){
+                                                            console.log("required unit is set: ", schema[serv_type][r]['required_unit']);
                                                             if( prop['unit'].toLowerCase() == schema[serv_type][r]['required_unit'].toLowerCase() ){
-                                                                //console.log("perfect unit match: ", prop['unit']);
+                                                                console.log("perfect unit match: ", prop['unit']);
                                                                 might_work++;
                                                             }
                                                             else{
@@ -1692,34 +1995,37 @@
                                                             }
                                                         }
                                                         
-                                                        // handle a variable type indicator in the schema. E.g. "boolean" or "integer"
+                                                        // handle a VARIABLE TYPE indicator in the schema. E.g. "boolean" or "integer"
                                                         if(typeof schema[serv_type][r]['required_variable'] != 'undefined'){
-                                                            
+                                                            console.log("required variable is set: ", schema[serv_type][r]['required_variable']);
                                                             // Complicated method of testing if enum strings that homekit needs are available in the property
                                                             if(schema[serv_type][r]['required_variable'] == 'enum' && typeof prop['enum'] != 'undefined'){
-                                                                //console.log("enum spotted in property");
+                                                                console.log("enum spotted in property");
                                                                 
                                                                 if(typeof schema[serv_type][r]['extra_attributes'] != 'undefined'){
                                                                     if(Object.keys(schema[serv_type][r]['extra_attributes']).length == 1){
                                                                         let enum_test_key = Object.keys(schema[serv_type][r]['extra_attributes'])[0];
-                                                                        //console.log("enum_test_key: ", enum_test_key);
+                                                                        console.log("enum_test_key: ", enum_test_key);
                                                                         if (Symbol.iterator in Object(schema[serv_type][r]['extra_attributes'][enum_test_key])) {
-                                                                            //console.log("extra is single iterable");
+                                                                            console.log("extra is single iterable");
                                                                             var all_in_enum = true;
                                                                             for(let p=0;p<schema[serv_type][r]['extra_attributes'][enum_test_key].length;p++){
                                                                                 let enum_item = schema[serv_type][r]['extra_attributes'][enum_test_key][p];
-                                                                                //console.log("enum_item: ", enum_item);
-                                                                                if(prop['enum'].indexOf(enum_item) == false){
-                                                                                    //console.log("not found in enum: ", enum_item);
+                                                                                console.log("enum_item: ", enum_item);
+                                                                                if(prop['enum'].indexOf(enum_item) == -1){
+                                                                                    console.error("not found in enum: ", enum_item, prop['enum']);
                                                                                     all_in_enum = false;
                                                                                     might_work = -3;
                                                                                     break;
                                                                                 }
                                                                             }
                                                                             if(all_in_enum){
-                                                                                //console.log("all_in_enum?", all_in_enum);
+                                                                                console.log("all_in_enum?", all_in_enum);
                                                                                 might_work++;
                                                                                 might_work++;
+                                                                            }
+                                                                            else{
+                                                                                console.log("not all in enum");
                                                                             }
                                                                         }
                                                                         else{
@@ -1739,11 +2045,12 @@
                                                             }
                                                             // test for all types except enum
                                                             else if(prop['type'] == schema[serv_type][r]['required_variable']){
-                                                                //console.log("property type match: ", prop['type']);
+                                                                console.log("property required variable type match: ", prop['type']);
                                                                 might_work++;
                                                                 might_work++;
                                                             }
                                                             else{
+                                                                console.log('wrong variable type: ' + prop['type']);
                                                                 might_work = -3; // can negate an earlier title match
                                                             }
                                                         }
@@ -1753,42 +2060,138 @@
                                                         //}
                                                         
                                                     }
+                                                    
+                                                    
                                                     if(might_work > 0){
                                                         //console.log("might_work: ", might_work, prop['title'], dev['title']);
-                                                        if(serv_type == 'required'){
-                                                            //console.log("increasing matched_required_properties");
-                                                            matched_required_properties++;
-                                                        }
-                                                        //console.error(schema.homekit_type, " matched_required_properties: " +  matched_required_properties + " of " + schema.required.length);
                                                         
-                                                        preference_score = preference_score + 10; // the more matched properties, the higher the score
-                                                        potent['homekit_type'] = schema.homekit_type;
-                                                        potent['preference_score'] = preference_score;
-                                                        //potent['services'].push(schema[serv_type],prop);
-                                                        for(let t=0;t<schema[serv_type][r]['config_names'].length;t++){
-                                                            //console.log("adding service to potential accessory: ", schema[serv_type][r]['config_names'][t]);
-                                                            potent['services'].push( {'config_name':schema[serv_type][r]['config_names'][t],"thing_id":thing_id,"property_id":key_id} );
+                                                        var endpoint_already_taken = false;
+                                                        for(let g=0;g<schema[serv_type][r]['config_names'].length;g++){
+                                                            if( filled_endpoints.indexOf(schema[serv_type][r]['config_names'][g]) > -1 ){
+                                                                endpoint_already_taken = true;
+                                                            }
                                                         }
-                                                        if(typeof schema[serv_type][r]['extra_attributes'] != 'undefined'){
-                                                            //console.log("adding extra attributes to potential accessory");
-                                                            potent['extras'].push( schema[serv_type][r]['extra_attributes'] );
+                                                       
+                                                        if(!endpoint_already_taken){
+                                                            if(serv_type == 'required'){
+                                                                console.log("increasing matched_required_properties");
+                                                                matched_required_properties++;
+                                                            }
+                                                            //console.error(schema.homekit_type, " matched_required_properties: " +  matched_required_properties + " of " + schema.required.length);
+                                                        
+                                                            preference_score = preference_score + 10; // the more matched properties, the higher the score
+                                                            potent['homekit_type'] = schema.homekit_type;
+                                                            potent['preference_score'] = preference_score;
+                                                            //potent['services'].push(schema[serv_type],prop);
+                                                            for(let t=0;t<schema[serv_type][r]['config_names'].length;t++){
+                                                                //console.log("adding service to potential accessory: ", schema[serv_type][r]['config_names'][t]);
+                                                                potent['services'].push( {'config_name':schema[serv_type][r]['config_names'][t],"thing_id":thing_id,"property_id":key_id} );
+                                                                filled_endpoints.push( schema[serv_type][r]['config_names'][t] ); // remember that this endpoint is now taken
+                                                            }
+                                                            if(typeof schema[serv_type][r]['extra_attributes'] != 'undefined'){
+                                                                //console.log("adding extra attributes to potential accessory");
+                                                                potent['extras'].push( schema[serv_type][r]['extra_attributes'] );
+                                                            }
+                                                        }
+                                                        
+                                                    }
+                                                    else{
+                                                        // Remember which required endpoints are missing for hacking later
+                                                        if(serv_type == 'required'){
+                                                            for(let t=0;t<schema[serv_type][r]['config_names'].length;t++){
+                                                                if(missing_required_endpoints.indexOf(schema[serv_type][r]['config_names'][t]) == -1){
+                                                                    missing_required_endpoints.push(schema[serv_type][r]['config_names'][t]);
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
                                             }
                                         
-                                            if(serv_type == 'required'){
-                                                if(matched_required_properties == schema[serv_type].length){
-                                                    //console.log(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties);
-                                                    potentials[schema.homekit_type] = potent;
-                                                }
-                                                else{
-                                                    //console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length);
-                                                }
-                                            }
-                                            
                                         }
                                         
+                                        // isn't serv_type always "required" when we arrive here?
+                                        console.log("\n\n------------- WHAT DID WE GET? -------------");
+                                        if(serv_type == 'required'){
+                                            if(matched_required_properties == schema[serv_type].length){
+                                                console.warn(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties, potent);
+                                                potentials[schema.homekit_type] = potent;
+                                            }
+                                            else{
+                                                console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length, potent);
+                                                //console.log("XXX filled_endpoints: ", filled_endpoints);
+                                                if(missing_required_endpoints.length > 0 && filled_endpoints.length > 0){ // make sure we're on the last run of the for loop that goes over required properties/endpoints
+                                                    
+                                                    
+                                                    
+                                                    // HACKING
+                                                    // Here we can do some hacking to create extra "ghost" properties that don't really exist in order to increase Homekit compatibility
+                                                
+                                                    // First, create an easy to scan list of endpoints that are available
+                                                    // TODO: would keeping track of which of these endpoints are required vs optional be useful here?
+                                                    
+                                                    //var filled_endpoints = [];
+                                                    //for(let h=0;h<potent['services'].length;h++){
+                                                    //    filled_endpoints.push( potent['services'][h]['config_name'] );
+                                                    //}
+                                                    console.log("hacking: filled_endpoints: ", filled_endpoints);
+                                                    console.log("missing_required_endpoints: ", missing_required_endpoints);
+                                                    
+                                                    // Go over all missing endpoints
+                                                    var hacks_count = 0;
+                                                    for(let m=0;m<missing_required_endpoints.length;m++){
+                                                        const missing = missing_required_endpoints[m];
+                                                        console.log(schema.homekit_type, "  has missing: ", missing, ' perhaps reconstruct from ', filled_endpoints);
+                                                
+                                                        console.log("schema.homekit_type: ", schema.homekit_type);
+                                                    
+                                                        // airQualitySensor opinion
+                                                        if(schema.homekit_type == 'airQualitySensor'){
+                                                            if(missing == 'getAirQuality' && filled_endpoints.indexOf('getPM2_5Density') > -1){
+                                                                console.log("Hacking: could calculate air quality opinion on the fly from pm25");
+                                                                const hackname = 'generate-' + hacks_count;
+                                                                potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
+                                                                potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,10,20,40,100] }} );
+                                                                potent['extras'].push( {"airQualityValues":["unknown","excellent","good","ok","poor","unhealthy"]} );
+                                                                hacks_count++;
+                                                            }
+                                                        
+                                                            else if(missing == 'getAirQuality' && filled_endpoints.indexOf('getCarbonDioxideLevel') > -1){
+                                                                console.log("Hacking: could calculate air quality opinion on the fly from carbon dioxide level");
+                                                                potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
+                                                                const hackname = 'generate-' + hacks_count;
+                                                                potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,600,800,1000,1500] }} );
+                                                                potent['extras'].push( {"airQualityValues":["unknown","excellent","good","ok","poor","unhealthy"]} );
+                                                                hacks_count++;
+                                                            }
+                                                        }
+                                                        
+                                                        // carbonDioxideSensor opinion
+                                                        else if(schema.homekit_type == 'carbonDioxideSensor'){
+                                                            
+                                                            if(missing == 'getCarbonDioxideDetected' && filled_endpoints.indexOf('getCarbonDioxideLevel') > -1){
+                                                                console.log("Hacking: could calculate carbon dioxide quality opinion on the fly from carbon dioxide level");
+                                                                potent['services'].push( {'config_name':'getCarbonDioxideDetected',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
+                                                                const hackname = 'generate-' + hacks_count;
+                                                                potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[0,1000] }} );
+                                                                potent['extras'].push( {"carbonDioxideDetectedValues":["normal","bad"]} );
+                                                                hacks_count++;
+                                                            }
+                                                            
+                                                        }
+                                                    }
+                                                    if(hacks_count == missing_required_endpoints.length){
+                                                        console.log("Hurray found enough hacks to complete the device: ", hacks_count);
+                                                        potentials[schema.homekit_type] = potent;
+                                                    
+                                                    }else{
+                                                        console.warn('not enough hacks found to complete the device: ', hacks_count, " of ", missing_required_endpoints.length, missing_required_endpoints);
+                                                    }
+                                                    
+                                                }
+                                                
+                                            }
+                                        }
                                         
                                     }
                                 }
@@ -1800,6 +2203,7 @@
                         }
                         
                     }
+                    console.log("scanned potentials: ", potentials);
                     return potentials;
                     
                 }
@@ -1809,7 +2213,7 @@
  
  
  
- 
+        // PAIR
  
         show_pairing(){
             
@@ -1822,7 +2226,7 @@
                 if(this.debug){
                     console.log("pair response: ", body);
                 }
-                if(typeof body.code != 'undefined'){
+                if(typeof body.state != 'undefined' && typeof body.code != 'undefined'){
                     if(body.state == true){
                         
                         // Generate QR code
@@ -1837,13 +2241,15 @@
                         
                         let pin_string = body.pin.toString();
                         
-                        let formatted_pin = pin_string;
+                        this.pin_code = pin_string;
                         if(pin_string.length == 8){
-                            formatted_pin = pin_string.substring(0,2) + " - " + pin_string.substring(3,4); + " - " + pin_string.substring(5,7); 
+                            //formatted_pin = pin_string.substring(0,2) + " - " + pin_string.substring(3,4); + " - " + pin_string.substring(5,7); 
+                            this.pin_code = pin_string.substring(0,3) + " - " + pin_string.substring(4,7); 
+                            
                         }
                         
                         // Show pin code under the QR code
-                        document.getElementById('extension-homebridge-pairing-code').innerText = formatted_pin;
+                        document.getElementById('extension-homebridge-pairing-code').innerText = this.pin_code;
                         
                     }
                     else{
@@ -1857,6 +2263,33 @@
 	        });	
         }
  
+        
+        
+        
+        start_homebridge(){
+            
+	        window.API.postJson(
+	          `/extensions/${this.id}/api/ajax`,
+                {'action':'start_homebridge'}
+
+	        ).then((body) => {
+                if(this.debug){
+                    console.log("start response: ", body);
+                }
+                if(typeof body.state != 'undefined'){
+                    if(body.state == true){
+                        console.log("Homebridge start requested succesfully");
+                        document.getElementById('extension-homebridge-reset-restart-container').style.display = 'none';
+                    }
+                    else{
+                        alert("Error, requesting Homebridge start failed");
+                    }
+                }
+			
+	        }).catch((e) => {
+	  			console.log("Error requesting Homebridge start: ", e);
+	        });	
+        }
         
         
         camelcase_to_human_readable(name) {

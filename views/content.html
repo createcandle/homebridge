@@ -6,7 +6,8 @@
 		<div id="extension-homebridge-tab-buttons-container" class="extension-homebridge-tab-buttons  extension-homebridge-after-launch">
             <button id="extension-homebridge-tab-button-things" class="extension-homebridge-main-tab-button extension-homebridge-tab-selected">Things</button>
             <button id="extension-homebridge-tab-button-pairing" class="extension-homebridge-main-tab-button">Pairing</button>
-            <button id="extension-homebridge-tab-button-plugins" class="extension-homebridge-main-tab-button">Plugins</button>
+            <button id="extension-homebridge-tab-button-advanced" class="extension-homebridge-main-tab-button">Advanced</button>
+            <button id="extension-homebridge-tab-button-tutorial" class="extension-homebridge-main-tab-button">?</button>
         </div>
         
         <div id="extension-homebridge-tabs-container"> 
@@ -50,8 +51,37 @@
                         <button id="extension-homebridge-show-pairing-button" class="text-button">Pair with iPhone or iPad</button>
                     </div>
                     
-                    <div id="extension-homebridge-main-launched" class="extension-homebridge-area extension-homebridge-after-launch" style="display:none">
-                        <h2 style="text-align:center">Homebridge has started</h2>
+                    <div id="extension-homebridge-main-launched" class="extension-homebridge-area extension-homebridge-after-launch" style="text-align:center">
+                        <h2>Homebridge has started</h2>
+                        <p id="extension-homebridge-name" style="opacity:.6"></p>
+                    </div>
+                    
+                    
+                    <div id="extension-homebridge-camera-detected-container" class="extension-homebridge-area extension-homebridge-hidden">
+                        <div id="extension-homebridge-camera-detected">
+                            <div style="padding:2rem;box-sizing:border-box">
+                                <img src="/extensions/homebridge/images/camera_lens.svg" width="100" height="100"/> 
+                            </div>
+                            <div>
+                                <h3>A camera was detected</h3>
+                                <p>Would you like to share the camera with Homekit?</p>
+                            </div>
+                        </div>
+                        <div style="text-align:right">
+                            <button id="extension-homebridge-install-camera-button" class="text-button">Share camera</button>
+                        </div>
+                    </div>
+                    <div id="extension-homebridge-manual-add-tutorial-container" style="display:none">
+                        <h3>To see your newly shared device in the Home app you may need to manually add it.</h3>
+                        <ol>
+                            <li>Open the Home app</li>
+                            <li>Select the Home tab</li>
+                            <li>Select the + button</li>
+                            <li>Select "Add accessory"</li>
+                            <li>select "More options"</li>
+                        </ol>
+                        <p>The device may be shown here. If not, then select "My accessory isn't shown here", and enter the following pairing code:</p>
+                        <p id="extension-homebridge-pairing-pin-code" style="font-weight:bold"></p>
                     </div>
                     
                     
@@ -65,7 +95,11 @@
                         <div style="text-align:right;margin:2rem 0">
                             <button id="extension-homebridge-save-things-button" class="text-button">Save</button>
                         </div>
+                        <div id="extension-homebridge-save-things-hint" style="display:none"><p style="text-align:right">Saving list and restarting Homebridge...</p></div>
                     </div>
+                    
+                    
+                    
                                         
                 </div>
                 
@@ -76,7 +110,7 @@
             <div id="extension-homebridge-tab-pairing" class="extension-homebridge-tab extension-homebridge-hidden">
                 <div class="extension-homebridge-centered-page">
                 
-                    <div id="extension-homebridge-pairing" class="extension-homebridge-area">
+                    <div id="extension-homebridge-pairing" class="extension-homebridge-area extension-homebridge-after-launch">
                         <h2>Pairing</h2>
                         <p>If you want your devices to show up in your Homekit app you will need to pair your Candle Controller with your Homekit controller (such as a Homepod or Apple TV). You will need an iPhone or iPad to do this.</p>
                         <p>Make sure the iPhone or iPad is connected to the same network as the Candle Controller and Homekit Controller. Then follow these steps:</p>
@@ -102,9 +136,27 @@
             
             
             
-            <div id="extension-homebridge-tab-plugins" class="extension-homebridge-tab extension-homebridge-hidden">
+            <div id="extension-homebridge-tab-advanced" class="extension-homebridge-tab extension-homebridge-hidden">
                 <div class="extension-homebridge-centered-page">
-                    <div id="extension-homebridge-main-launched" class="extension-homebridge-area extension-homebridge-after-launch">
+                    
+                    <div class="extension-homebridge-area">
+                        <h2>Advanced options</h2>
+                        <p>Resetting Homebridge means any current pairing with Homekit will be lost, and you will have to go through the pairing process again. Before you do so, you will also have to manually remove the old bridge in your Home app (under "Home settings" and then "Home Hubs & Bridges").</p>
+                        <div style="text-align:right">
+                            <button id="extension-homebridge-reset-button" class="text-button">Reset Homebridge</button>
+                        </div>
+                        <p id="extension-homebridge-doing-reset-hint" style="display:none;font-weight:bold">Doing full reset...</p>
+                        
+                        <div id="extension-homebridge-reset-restart-container" style="display:none">
+                            <p>If you have removed the bridge from your Homekit controller too, then you can restart Homebridge and go through the pairing process again.</p>
+                            <div style="text-align:right">
+                                <button id="extension-homebridge-reset-restart-button" class="text-button">Restart Homebridge</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                    <div class="extension-homebridge-area extension-homebridge-after-launch">
                         <h2>Plugins</h2>
                         <p>This is a feature for advanced users. It allows you to connect all kinds of devices that are not officially supported to your Apple Homekit controller.</p>
                         <p>Once a plugin is installed you can change its settings in the separate Homebridge interface:</p>
@@ -113,12 +165,13 @@
                             <a id="extension-homebridge-config-ui-link" href="#" target="_blank"><button class="text-button">Open Homebridge configuration</button></a>
                         </div>
                     </div>
+                    
                     <div id="extension-homebridge-installed-plugins-output-container" class="extension-homebridge-area extension-homebridge-after-launch">
                         <h2>Installed plugins</h2>
                         <div id="extension-homebridge-installed-plugins-output"></div>
                     </div>
                     
-                    <div class="extension-homebridge-area">
+                    <div class="extension-homebridge-area extension-homebridge-after-launch">
                         <h2>Add plugins</h2>
                         <div style="display:flex;">
                             <input id="extension-homebridge-search-input" type="text" placeholder="Search" style="flex-grow:1"/>
@@ -129,10 +182,59 @@
                     </div>
                     
                 </div>
-                <button id="extension-homebridge-show-second-page-button" class="icon-button extension-homebridge-after-launch"></button>
             </div>
             
             
+            
+            
+            <div id="extension-homebridge-tab-tutorial" class="extension-homebridge-tab extension-homebridge-hidden">
+                
+                <div class="extension-homebridge-centered-page">
+                    
+                    <h2>Using Homebridge</h2>
+                    
+                    <p>Do you like Apple devices? This addon allows you to pair your Candle controller with an Apple Homekit controller, such as a Homepod or Apple TV. You can then 'share' some of your things, which means they can be controlled through your iPhone's Home app, or through Siri voice control.</p>
+                    <p>To pair them together you will also need an iPhone or iPad.</p>
+                    
+                    
+                    <h4>Sharing things</h4>
+                    <p>On the main page of this addon you will see any existing things that can be "translated" into an Apple compatible device. Your things will essentially pretend to be Homekit devices. You can select which devices you want to make available to your Homekit controller, and as what type of device they should be presented. You can even select multiple options, so a thing will show up multiple times.</p>
+                    <p>The translation might not always be perfect, as Apple is picky about what devices should be able to do. For example, when you share the Radio thing the best way is to share it as... a lightbulb. Since Apple for some reason also turns lights on and off when you change their brightness, the radio will also briefly turn off and on again whenever you change the volume.</p>
+                    <p>This translation and pretending functionality is made possible by the open source Homebridge project. Learn more at <a href="https://www.homebridge.io" target="_blank">www.homebridge.io</a>.</p>
+                    
+                    <h4>Pairing</h4>
+                    <p>Once the Homebridge addon is fully installed you should pair it with your Homekit controller. Once this is complete any things you have selected to share should automatically show up in your Home app.</p>
+                    
+                    
+                    
+                    <h4>Alternative app</h4>
+                    <p>You might want to try installing the Eve smart home app and see if you like it. Their app has a few more options than Apple's own Home app.</p>
+                    
+                    <h2>Plugins (advanced)</h2>
+                    <p>You can help more of your smart home devices "pretend" to be Homekit devices. There are many community-created plugins for this, which you can install. You will also have to provide settings fo your device, which is where it gets more complicated. You will have to open the special Homebridge interface, and change the setting for that specific plugin. For example, some devices may require a login name and password. Others may require you to know the device's IP address, and so forth.</p>
+                    
+                    <h4>Doorbell / Security camera</h4>
+                    <p>If you have connected a ribbon-cable camera to your Raspberry Pi, then you will see the option to share that with Homekit too. It will then become a streaming camera. This is a convenient way of creating a security camera or even smart doorbell. This installs a plugin, changes its settings for you, and runs a local camera server.</p>
+                    <p>If you have a button attached to the Raspberry Pi's IO pins, then you can make that work as a doorbell button. You can select which pin to use in this addon's settings.</p>
+                    <p>It's recommended to also install the <span style="font-style:italic">Candlecam</span> addon, but disable it's video streaming in its settings. This will give you many more features, such as playing ringtone sounds.</p>
+                    
+                    
+                    <h2>Troubleshooting</h2>
+                    <p>Here are some issues you may run into:</p>
+                    
+                    <h4>A device doesn't work</h4>
+                    <p>Sometimes Apple doesn't access a device type. If possible try sharing it as another device type.</p>
+                    
+                    <h4>"Updating..."</h4>
+                    <p>If your Home app shows all your things are having connection issues, this means your Candle Controller and your Homekit Controller have lost connection. Often restarting the Homekit controller should re-establish the connection. Unplug it for ten seconds.</p>
+                    
+                    <h4>Bridge already paired</h4>
+                    <p>If you manually removed the Candle Homebridge from your Home app, then you may find that re-pairing it isn't possible. You will have to 'reset' the Homebridge addon, which can be done under the Advanced tab.</p>
+                    
+                    
+                </div>
+            
+            </div>
             
             <div id="extension-homebridge-second-page">
                 <div class="extension-homebridge-centered-page">
@@ -147,7 +249,7 @@
                         <button id="extension-homebridge-add-item-button" class="text-button">Add</button>
                     </div>
                     -->
-                    <!-- <img src="/extensions/homebridge/images/lotus.jpg" /> 
+                    <!-- 
                     <div id="extension-homebridge-back-button-container">
                         <button id="extension-homebridge-back-button" class="back-button icon-button" data-l10n-id="back-button" aria-label="Back"></button>
                     </div>

@@ -71,7 +71,7 @@ extension-homebridge-
     background-repeat: no-repeat;
     background-position: 0;
     background-image: url('../images/menu-icon.svg');
-	width:16rem; /* You might want to change this if you have a longer or shorter addon name */
+	width:11rem; /* You might want to change this if you have a longer or shorter addon name */
 	margin:0 auto;
 }
 
@@ -353,7 +353,21 @@ body #extension-homebridge-view .extension-homebridge-tab-selected {
 
 
 
+/*  CAMERA  */
 
+#extension-homebridge-camera-detected{
+    display:flex;
+    align-items:center;
+}
+
+
+
+
+/*  TUTORIAL  */
+
+#extension-homebridge-tab-tutorial h2{
+    margin-top:8rem;
+}
 
 /*  SECOND PAGE  */
 

@@ -26,7 +26,7 @@ mkdir -p lib package
 pip3 install -r requirements.txt -t lib --no-binary :all: --prefix ""
 
 # Put package together
-cp -r lib pkg LICENSE manifest.json *.py README.md  css images js views  package/
+cp -r lib pkg LICENSE manifest.json *.py README.md  css images js views streamer package/
 find package -type f -name '*.pyc' -delete
 find package -type f -name '._*' -delete
 find package -type d -empty -delete
@@ -41,7 +41,6 @@ cd -
 # Make the tarball
 echo "creating archive"
 TARFILE="homebridge-${version}${TARFILE_SUFFIX}.tgz"
-echo "$TARFILE"
 tar czf ${TARFILE} package
 
 echo "creating shasums"
