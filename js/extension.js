@@ -550,8 +550,8 @@
                         
                         }
                     
-                        if(typeof body.pi_camera_plugin_installed != 'undefined'){
-                            if(!body.pi_camera_plugin_installed){
+                        if(typeof body.pi_camera_plugin_installed != 'undefined' && typeof body.camera_available != 'undefined'){
+                            if(body.camera_available && !body.pi_camera_plugin_installed){
                                 document.getElementById('extension-homebridge-camera-detected-container').classList.remove("extension-homebridge-hidden");
                             }
                         }
@@ -651,51 +651,67 @@
                     clone.querySelector(".extension-homebridge-item-name").innerText = items[item].name; // The original and its clones use classnames to avoid having the same ID twice
                     clone.getElementsByClassName("extension-homebridge-item-value")[0].innerText = items[item].value; // another way to do the exact same thing - select the element by its class name
                     
-
-					// ADD DELETE BUTTON
-					const delete_button = clone.querySelectorAll('.extension-homebridge-item-delete-button')[0];
-                    //console.log("delete button element: ", delete_button);
-                    delete_button.setAttribute('data-name', items[item].name);
+                    let my_item = item;
+					
                     
-                    
-                    
-					delete_button.addEventListener('click', (event) => {
-                        if(this.debug){
-                            console.log("delete button click. event: ", event);
-                        }
-                        if(items[item].name == "homebridge-webthings"){
-                            alert("This plugin cannot be deleted because it is part of the Homebridge addon");
-                        }
-                        else{
-                            if(confirm("Are you sure you want to delete this plugin?")){
-    						
-        						// Inform backend
-        						window.API.postJson(
-        							`/extensions/${this.id}/api/ajax`,
-        							{'action':'delete_plugin','name': event.target.dataset.name}
-        						).then((body) => { 
-        							if(this.debug){
-                                        console.log("Homebridge: delete plugin response: ", body);
-                                    }
-                                    if(body.state == true){
-                                        if(this.debug){
-                                            console.log('Homebridge plugin was succesfully deleted on the backend');
-                                        }
-                                    
-                                        event.target.closest(".extension-homebridge-item").style.display = 'none'; // find the parent item
-                                        // Remove the item form the list, or regenerate the entire list instead
-                                        // parent4.removeChild(parent3);
-                                    }
-                                    //this.show_plugins();
-                                    this.get_init_data();
-
-        						}).catch((e) => {
-        							console.log("homebridge: error in delete items handler: ", e);
-        						});
-                            }
-                        }
+                    console.log("A items[item].name: ", items[item].name);
+                    if(items[item].name != "homebridge-webthings"){
+                        console.log("plugin is not homebridge-webthings");
                         
-				  	});
+    					// ADD DELETE BUTTON
+    					const delete_button = clone.querySelectorAll('.extension-homebridge-item-delete-button')[0];
+                        //console.log("delete button element: ", delete_button);
+                        delete_button.setAttribute('data-name', items[item].name);
+                        
+    					delete_button.addEventListener('click', (event) => {
+                            if(this.debug){
+                                console.log("delete button click. event: ", event);
+                            }
+                            
+                            
+                            console.log("delete: my_item: ", my_item);
+                            console.log("items[my_item].name: ", items[my_item].name);
+                            
+                            if(items[my_item].name == "homebridge-webthings"){
+                                alert("This plugin cannot be deleted because it is part of the Homebridge addon");
+                            }
+                            else{
+                                if(confirm("Are you sure you want to delete this plugin?")){
+    						
+            						// Inform backend
+            						window.API.postJson(
+            							`/extensions/${this.id}/api/ajax`,
+            							{'action':'delete_plugin','name': event.target.dataset.name}
+            						).then((body) => { 
+            							if(this.debug){
+                                            console.log("Homebridge: delete plugin response: ", body);
+                                        }
+                                        if(body.state == true){
+                                            if(this.debug){
+                                                console.log('Homebridge plugin was succesfully deleted on the backend');
+                                            }
+                                    
+                                            event.target.closest(".extension-homebridge-item").style.display = 'none'; // find the parent item
+                                            // Remove the item form the list, or regenerate the entire list instead
+                                            // parent4.removeChild(parent3);
+                                        }
+                                        //this.show_plugins();
+                                        this.get_init_data();
+
+            						}).catch((e) => {
+            							console.log("homebridge: error in delete items handler: ", e);
+            						});
+                                }
+                            }
+                        
+    				  	});
+                    }
+                    else{
+                        console.log("plugin was homebridge-webthings, not adding listener to delete button");
+                        clone.querySelector(".extension-homebridge-item-menu").style.display = 'none';
+                        
+                    }
+					
 
                     // Add the clone to the list container
 					list_el.append(clone);
@@ -1283,7 +1299,7 @@
                             "property_name":"mode",
                             "config_names":["getCurrentHeatingCoolingState"],
                             "required_variable":"enum",
-                            "extra_attributes":{"heatingCoolingStateValues":["off","heat","off","off"]}
+                            "extra_attributes":{"heatingCoolingStateValues":["off","heat","cool","auto"],"restrictHeatingCoolingState":[0, 1]}
                         },
                         {
                             "property_at_type":"TargetTemperatureProperty",
@@ -1294,7 +1310,7 @@
                             "property_at_type":"HeatingCoolingProperty",
                             "property_name":"running state",
                             "config_names":["getTargetHeatingCoolingState","setTargetHeatingCoolingState"],
-                            "extra_attributes":{"restrictHeatingCoolingState":["off","heating"]}
+                            //"extra_attributes":{"restrictHeatingCoolingState":["off","heating"]}
                         }
                     ],
                     "optional":[
@@ -1795,8 +1811,8 @@
                     let thing_title = this.all_things[i]['title']
                     
                     if(this.debug){
-                        console.log("\n\n\n\n\n=\n==\n===");
-                        console.log("thing title: ", thing_title);
+                        //console.log("\n\n\n\n\n=\n==\n===");
+                        //console.log("thing title: ", thing_title);
                     }
                     
                     
@@ -1853,8 +1869,8 @@
                                                 //schema[serv_type][r];
                                             
                                                 if(this.debug){
-                                                    console.log(".\n.\n", serv_type);
-                                                    console.log(schema[serv_type][r]);
+                                                    //console.log(".\n.\nhomebridge debug: serv_type:", serv_type);
+                                                    //console.log("homebridge debug: schema: ", schema[serv_type][r]);
                                                 }
                                                 
                                                 // LOOP OVER THING PROPERTIES
@@ -1945,7 +1961,7 @@
                                                                                 //console.log("enum_item: ", enum_item);
                                                                                 if(prop['enum'].indexOf(enum_item) == -1){
                                                                                     if(this.debug){
-                                                                                        console.log("not found in enum: ", enum_item, prop['enum']);
+                                                                                        //console.log("not found in enum: ", enum_item, prop['enum']);
                                                                                     }
                                                                                     all_in_enum = false;
                                                                                     might_work = -3;
@@ -2048,13 +2064,13 @@
                                         if(serv_type == 'required'){
                                             if(matched_required_properties == schema[serv_type].length){
                                                 if(this.debug){
-                                                    console.warn(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties, potent);
+                                                    //console.warn(schema.homekit_type, " M A T C H count with required properties. Matched: ", matched_required_properties, potent);
                                                 }
                                                 potentials[schema.homekit_type] = potent;
                                             }
                                             else{
                                                 if(this.debug){
-                                                    console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length, potent);
+                                                    //console.warn(schema.homekit_type, " not a match, only got " +  matched_required_properties + " of " + schema[serv_type].length, potent);
                                                 }
                                                 //console.log("XXX filled_endpoints: ", filled_endpoints);
                                                 if(missing_required_endpoints.length > 0 && filled_endpoints.length > 0){ // make sure we're on the last run of the for loop that goes over required properties/endpoints
@@ -2074,6 +2090,18 @@
                                                     //console.log("hacking: filled_endpoints: ", filled_endpoints);
                                                     //console.log("missing_required_endpoints: ", missing_required_endpoints);
                                                     
+                                                    
+                                                    // Small helper function to find out which property was used in the services info, 
+                                                    // as it seems this info is not available in mqttlib.js
+                                                    function find_property_for_endpoint(potent,endpoint){
+                                                        for(let e=0;e<potent['services'].length;e++){
+                                                            if(potent['services'][e]['config_name'] == endpoint){
+                                                                return potent['services'][e]['property_id'];
+                                                            }
+                                                        }
+                                                        return null
+                                                    }
+                                                    
                                                     // Go over all missing endpoints
                                                     var hacks_count = 0;
                                                     for(let m=0;m<missing_required_endpoints.length;m++){
@@ -2088,22 +2116,25 @@
                                                                 if(this.debug){
                                                                     console.log("Hacking: could calculate air quality opinion on the fly from pm25");
                                                                 }
-                                                                const hackname = 'generate-' + hacks_count;
-                                                                potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
-                                                                potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,10,20,40,100] }} );
-                                                                potent['extras'].push( {"airQualityValues":["unknown","excellent","good","ok","poor","unhealthy"]} );
-                                                                hacks_count++;
+                                                                const src_property_id = find_property_for_endpoint(potent,'getPM2_5Density');
+                                                                if(src_property_id != null){
+                                                                    potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
+                                                                    potent['extras'].push( {'hack':{'type':'generate','src':src_property_id ,'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,10,20,40,100] }} );
+                                                                    potent['extras'].push( {"airQualityValues":["unknown","excellent","good","ok","poor","unhealthy"]} );
+                                                                    hacks_count++;
+                                                                }   
                                                             }
-                                                        
                                                             else if(missing == 'getAirQuality' && filled_endpoints.indexOf('getCarbonDioxideLevel') > -1){
                                                                 if(this.debug){
                                                                     console.log("Hacking: could calculate air quality opinion on the fly from carbon dioxide level");
                                                                 }
-                                                                potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
-                                                                const hackname = 'generate-' + hacks_count;
-                                                                potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,600,800,1000,1500] }} );
-                                                                potent['extras'].push( {"airQualityValues":["unknown","excellent","good","ok","poor","unhealthy"]} );
-                                                                hacks_count++;
+                                                                const src_property_id = find_property_for_endpoint(potent,'getCarbonDioxideLevel');
+                                                                if(src_property_id != null){
+                                                                    potent['services'].push( {'config_name':'getAirQuality',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
+                                                                    potent['extras'].push( {'hack':{'type':'generate', 'src':src_property_id, 'from':'getCarbonDioxideLevel','to':'getAirQuality','nr':hacks_count,'thresholds':[null,0,600,800,1000,1500] }} );
+                                                                    potent['extras'].push( {"airQualityValues":["unknown","excellent","good","ok","poor","unhealthy"]} );
+                                                                    hacks_count++;
+                                                                }
                                                             }
                                                         }
                                                         
@@ -2114,11 +2145,13 @@
                                                                 if(this.debug){
                                                                     console.log("Hacking: could calculate carbon dioxide quality opinion on the fly from carbon dioxide level");
                                                                 }
-                                                                potent['services'].push( {'config_name':'getCarbonDioxideDetected',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
-                                                                const hackname = 'generate-' + hacks_count;
-                                                                potent['extras'].push( {hackname:{'from':'getPM2_5Density','to':'getAirQuality','nr':hacks_count,'thresholds':[0,1000] }} );
-                                                                potent['extras'].push( {"carbonDioxideDetectedValues":["normal","bad"]} );
-                                                                hacks_count++;
+                                                                const src_property_id = find_property_for_endpoint(potent,'getCarbonDioxideLevel');
+                                                                if(src_property_id != null){
+                                                                    potent['services'].push( {'config_name':'getCarbonDioxideDetected',"thing_id":thing_id,"property_id":"homebridge-fake-" + hacks_count} );
+                                                                    potent['extras'].push( {'hack':{'type':'generate', 'src':src_property_id, 'from':'getCarbonDioxideLevel','to':'getCarbonDioxideDetected','nr':hacks_count,'thresholds':[0,1000] }} );
+                                                                    potent['extras'].push( {"carbonDioxideDetectedValues":["normal","bad"]} );
+                                                                    hacks_count++;
+                                                                }
                                                             }
                                                             
                                                         }
@@ -2131,7 +2164,7 @@
                                                     
                                                     }else{
                                                         if(this.debug){
-                                                            console.warn('not enough hacks found to complete the device: ', hacks_count, " of ", missing_required_endpoints.length, missing_required_endpoints);
+                                                            //console.warn('not enough hacks found to complete the device: ', hacks_count, " of ", missing_required_endpoints.length, missing_required_endpoints);
                                                         }
                                                     }
                                                     
@@ -2150,7 +2183,7 @@
                         }
                         
                     }
-                    console.log("scanned potentials: ", potentials);
+                    //console.log("scanned potentials: ", potentials);
                     return potentials;
                     
                 }

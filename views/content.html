@@ -114,7 +114,7 @@
                         <h2>Pairing</h2>
                         <p>If you want your devices to show up in your Homekit app you will need to pair your Candle Controller with your Homekit controller (such as a Homepod or Apple TV). You will need an iPhone or iPad to do this.</p>
                         <p>Make sure the iPhone or iPad is connected to the same network as the Candle Controller and Homekit Controller. Then follow these steps:</p>
-                        <ol>
+                        <ol class="extension-homebridge-steps-list">
                             <li>Open the Home app</li>
                             <li>Select the Home tab</li>
                             <li>Select the + button</li>
@@ -138,23 +138,6 @@
             
             <div id="extension-homebridge-tab-advanced" class="extension-homebridge-tab extension-homebridge-hidden">
                 <div class="extension-homebridge-centered-page">
-                    
-                    <div class="extension-homebridge-area">
-                        <h2>Advanced options</h2>
-                        <p>Resetting Homebridge means any current pairing with Homekit will be lost, and you will have to go through the pairing process again. Before you do so, you will also have to manually remove the old bridge in your Home app (under "Home settings" and then "Home Hubs & Bridges").</p>
-                        <div style="text-align:right">
-                            <button id="extension-homebridge-reset-button" class="text-button">Reset Homebridge</button>
-                        </div>
-                        <p id="extension-homebridge-doing-reset-hint" style="display:none;font-weight:bold">Doing full reset...</p>
-                        
-                        <div id="extension-homebridge-reset-restart-container" style="display:none">
-                            <p>If you have removed the bridge from your Homekit controller too, then you can restart Homebridge and go through the pairing process again.</p>
-                            <div style="text-align:right">
-                                <button id="extension-homebridge-reset-restart-button" class="text-button">Restart Homebridge</button>
-                            </div>
-                        </div>
-                    </div>
-                    
                     
                     <div class="extension-homebridge-area extension-homebridge-after-launch">
                         <h2>Plugins</h2>
@@ -180,6 +163,25 @@
                     
                         <div id="extension-homebridge-search-output"></div>
                     </div>
+                    
+                    
+                    <div class="extension-homebridge-area" style="margin-top:10rem">
+                        <h2>Reset Homebridge</h2>
+                        <p>Resetting Homebridge means any current pairing with Homekit will be lost, and you will have to go through the pairing process again.</p>
+                        <p>You will also have to manually remove the old bridge in your Home app (under "Home settings" and then "Home Hubs & Bridges").</p>
+                        <div style="text-align:right;margin-top:3rem">
+                            <button id="extension-homebridge-reset-button" class="text-button" style="background-color:#900">Reset Homebridge</button>
+                        </div>
+                        <p id="extension-homebridge-doing-reset-hint" style="display:none;font-weight:bold">Doing full reset...</p>
+                        
+                        <div id="extension-homebridge-reset-restart-container" style="display:none">
+                            <p>If you have removed the bridge from your Homekit controller too, then you can restart Homebridge and go through the pairing process again.</p>
+                            <div style="text-align:right">
+                                <button id="extension-homebridge-reset-restart-button" class="text-button">Restart Homebridge</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     
                 </div>
             </div>

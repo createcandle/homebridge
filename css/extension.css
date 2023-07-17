@@ -22,11 +22,15 @@ extension-homebridge-
 }
 
 #extension-homebridge-view ol li{
-    margin-bottom:.5rem;
+    margin-bottom:1rem;
 }
 
 #extension-homebridge-view img{
     max-width:100%;
+}
+
+#extension-homebridge-view p{
+    line-height: 2.6rem;
 }
 
 #extension-homebridge-view a{
@@ -92,6 +96,14 @@ extension-homebridge-
     margin: 4rem;
 }
 
+
+
+.extension-homebridge-steps-list{
+    margin: 4rem auto;
+    font-size: 2rem;
+}
+    
+
 #extension-homebridge-pairing-qr-code{
     max-width:300px;
     border:4rem solid white;
@@ -100,19 +112,6 @@ extension-homebridge-
 #extension-homebridge-pairing-code{
     font-weight:bold;
 }
-
-#extension-homebridge-second-page{
-    display:none;
-}
-.extension-homebridge-showing-second-page #extension-homebridge-second-page{
-    display:block;
-}
-.extension-homebridge-showing-second-page #extension-homebridge-main-page{
-    display:none;
-}
-
-
-
 
 
 .extension-homebridge-centered-page{
@@ -153,7 +152,7 @@ extension-homebridge-
     border-radius: 0.7rem;
     overflow: hidden;
     font-size: 0;
-    width:60%;
+    width:100%;
     max-width: 40rem;
     margin: 4rem auto 0 auto;
     display:flex;
@@ -304,6 +303,8 @@ body #extension-homebridge-view .extension-homebridge-tab-selected {
     margin: 2rem 0;
     border-radius:.5rem;
     background-color:rgba(0,0,0,.5);
+    display:flex;
+    justify-content:space-between;
 }
 
 .extension-homebridge-item > div{
@@ -557,10 +558,12 @@ body #extension-homebridge-view .extension-homebridge-tab-selected {
 }
 
 @media screen and (min-width: 641px) {
+    /*
     .extension-homebridge-item{
         display:flex;
         justify-content:space-between;
     }
+    */
     
     .extension-homebridge-thing{
         min-width: 10rem;
@@ -573,6 +576,18 @@ body #extension-homebridge-view .extension-homebridge-tab-selected {
     .extension-homebridge-thing:nth-child(even) {
         margin-left:1rem;
         width:calc(50% - 1rem);
+    }
+    
+    .extension-homebridge-steps-list{
+        width:50%;
+        margin: 4rem auto;
+        padding: 0;
+        list-style-position: inside;
+        font-size: 2rem;
+    }
+    
+    .extension-homebridge-tab-buttons{
+        width:80%;
     }
 }
 
@@ -588,6 +603,10 @@ body #extension-homebridge-view .extension-homebridge-tab-selected {
     
     .extension-homebridge-area{
         padding:4rem;
+    }
+    
+    .extension-homebridge-tab-buttons{
+        width:60%;
     }
 }
 

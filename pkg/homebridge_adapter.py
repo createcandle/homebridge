@@ -304,7 +304,7 @@ class HomebridgeAdapter(Adapter):
         # Create the thing
         try:
             #if self.has_respeaker_hat:
-            if self.pi_camera_available: 
+            if self.pi_camera_plugin_installed and self.pi_camera_available: 
                 # Create the device object
                 homebridge_device = HomebridgeDevice(self)
             
@@ -323,7 +323,7 @@ class HomebridgeAdapter(Adapter):
 
             
         # Start the camera (if available and enabled)
-        if self.pi_camera_available: 
+        if self.pi_camera_plugin_installed and self.pi_camera_available: 
             if self.persistent_data['streaming']:
                 if self.DEBUG:
                     print("starting the MediaMTX RTSP streamer")
@@ -654,7 +654,7 @@ class HomebridgeAdapter(Adapter):
             time.sleep(1)
             if self.last_thumbnail_time + self.thumbnail_interval < time.time():
                 self.last_thumbnail_time = time.time()
-                print("self.persistent_data['privacy_preview']: " + str(self.persistent_data['privacy_preview']))
+                #print("self.persistent_data['privacy_preview']: " + str(self.persistent_data['privacy_preview']))
                 if self.persistent_data['streaming'] and not self.persistent_data['privacy_preview']:
                     #if self.DEBUG:
                     #    print("taking a thumbnail from the stream")
@@ -1142,8 +1142,8 @@ class HomebridgeAdapter(Adapter):
             hb_command += str(self.hb_node_path)  # could potentially skip this if the node versions are equal
             hb_command += " " + str(self.hb_service_path)
             hb_command += " run -I" # insecure mode
-            if self.DEBUG:
-                hb_command += " -D" # debug mode
+            #if self.DEBUG:
+            hb_command += " -D" # debug mode
             hb_command += " -U " + str(self.hb_storage_path)
             hb_command += " -P " + str(self.hb_plugins_path)
             #hb_command += " --strict-plugin-resolution" #--stdout

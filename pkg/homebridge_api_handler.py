@@ -92,6 +92,7 @@ class HomebridgeAPIHandler(APIHandler):
                                       'config_ip':self.adapter.ip,
                                       'hostname':self.adapter.hostname,
                                       'things':self.adapter.persistent_data['things'],
+                                      'camera_available':self.adapter.pi_camera_available,
                                       'pi_camera_plugin_installed':self.adapter.pi_camera_plugin_installed,
                                       'debug':self.adapter.DEBUG
                                       }),
