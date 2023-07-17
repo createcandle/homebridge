@@ -14,6 +14,10 @@ Adding a Raspberry Pi camera is made especially easy - one click. This will show
 
 As a candle creation this addon has extra privacy protecting features. You can (temporarily) limit the preview images of the camera. This does not affect video streaming functionality, but it does limit "accidental glances" while using the Home app. It's part of the goal to limit 'seduction', where users don't intend to spy on each other, but do so accidentally or opportunistically.
 
+## Additional details
+
+The addon installs a Homebridge Plugin that handles the Homekit-Webthings connection and translation. https://github.com/createcandle/homebridge-webthings
+
 ## Installation
 
 Install it from the Candle app store.
