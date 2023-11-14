@@ -344,7 +344,7 @@ class HomebridgeAPIHandler(APIHandler):
         if self.DEBUG:
             print("plugin should now be installed")
         
-        self.quick_hb_restart()
+        self.adapter.quick_hb_restart()
         #self.run_hb()
         
         # Check if a directory with the plugin name now exists
