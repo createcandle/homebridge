@@ -244,7 +244,12 @@
                         console.log("share camera button clicked")
                     }
                     this.request_plugin_install("homebridge-camera-ffmpeg");
+					document.getElementById('extension-homebridge-install-camera-button').style.display = 'none';
+					document.getElementById('extension-homebridge-installing-camera-plugin').style.display = 'block';
+					
                     document.getElementById('extension-homebridge-manual-add-tutorial-container').style.display = 'block';
+					
+					
     			});
                 
                 

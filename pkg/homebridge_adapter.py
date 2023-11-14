@@ -1097,15 +1097,34 @@ class HomebridgeAdapter(Adapter):
         if self.DEBUG:
             print("IN RUN_HB")
             
+        # Just in case it's already running, stop it first
+        self.stop_hb()
+            
         if not os.path.isdir(self.hb_webthings_plugin_path):
             print("Error, the Homebridge-webthings module seems to be missing")
             self.send_pairing_prompt( "Error, Homebridge Webthings module is missing" )
             self.hb_installed = False
             
+            # Check if homebridge is fully installed
+            if os.path.isfile(self.hb_service_path):
+                print("Homebridge installed succesfully")
+
+                print("run_hb: fixing missing homebridge-webthings Node module")
+                p = subprocess.Popen([self.hb_npm_path,"install","--save","git+https://github.com/createcandle/homebridge-webthings.git"], cwd=self.hb_plugins_path)
+                p.wait()
         
-        # Just in case it's already running, stop it first
-        self.stop_hb()
-        
+                if os.path.isdir(self.hb_webthings_plugin_path):
+                    self.update_installed_plugins_list()
+                
+                    self.hb_installed = True
+                    self.hb_install_progress = 100
+                else:
+                    self.hb_install_progress = -80
+                
+            else:
+                print("Homebridge failed to fully install")
+                self.hb_install_progress = -100
+            
         self.update_config_file()
         
         if self.DEBUG:
