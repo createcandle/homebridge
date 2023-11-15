@@ -551,15 +551,19 @@
                                 if(this.debug){
                                     //console.log("Homebridge installation succeeded");
                                 }
+								
+		                        if(typeof body.pi_camera_plugin_installed != 'undefined' && typeof body.camera_available != 'undefined'){
+		                            if(body.camera_available && !body.pi_camera_plugin_installed){
+		                                document.getElementById('extension-homebridge-camera-detected-container').classList.remove("extension-homebridge-hidden");
+		                            }
+		                        }
+								
+								
                             }
                         
                         }
                     
-                        if(typeof body.pi_camera_plugin_installed != 'undefined' && typeof body.camera_available != 'undefined'){
-                            if(body.camera_available && !body.pi_camera_plugin_installed){
-                                document.getElementById('extension-homebridge-camera-detected-container').classList.remove("extension-homebridge-hidden");
-                            }
-                        }
+                        
                         
                     
                         /*

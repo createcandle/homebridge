@@ -498,6 +498,8 @@ class HomebridgeAdapter(Adapter):
 
         
     def start_camera(self):
+        if self.DEBUG:
+            print("in start_camera")
         if self.persistent_data['streaming']:
             if self.pi_camera_plugin_installed and self.pi_camera_available:
                 if self.DEBUG:
