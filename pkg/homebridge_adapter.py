@@ -531,7 +531,6 @@ class HomebridgeAdapter(Adapter):
 
 
 
-
     def really_start_camera(self):
         if self.DEBUG:
             print("in really_start_camera")
@@ -670,9 +669,10 @@ class HomebridgeAdapter(Adapter):
 
     
     # button pressed on respeaker board (or test press)
-    def dingdong(self):
+    def dingdong(self,value=None):
         if self.DEBUG:
             print("\nDING DONG! doorbell button pressed. calling url: " + str(self.doorbell_url))
+            print("dingdong received value: " + str(value))
         try:
             # E.g. http://hostname:port/doorbell?Camera%20Name
             req = urlreq.Request(self.doorbell_url)

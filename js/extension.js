@@ -247,7 +247,7 @@
 					document.getElementById('extension-homebridge-install-camera-button').style.display = 'none';
 					document.getElementById('extension-homebridge-installing-camera-plugin').style.display = 'block';
 					
-                    document.getElementById('extension-homebridge-manual-add-tutorial-container').style.display = 'block';
+                    //document.getElementById('extension-homebridge-manual-add-tutorial-container').style.display = 'block';
 					
 					
     			});
@@ -1323,7 +1323,12 @@
                             "property_name":"unit",
                             "required_variable":"strings",
                             "config_names":["getTemperatureDisplayUnits","setTemperatureDisplayUnits"]
-                        }
+                        },
+                        {
+                            "property_at_type":"TemperatureProperty",
+                            "property_name":"temperature",
+                            "config_names":["getCurrentTemperature"]
+                        },
                     ]
                 },
                 
