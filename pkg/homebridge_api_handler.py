@@ -335,8 +335,15 @@ class HomebridgeAPIHandler(APIHandler):
         if self.DEBUG:
             print("in install_plugin. Name: " + str(name) + " -> " + str(plugin_name_full))
         
-        p = subprocess.Popen([self.adapter.hb_npm_path,"install","--save",plugin_name_full], cwd=self.adapter.hb_plugins_path)
+        p = subprocess.Popen([self.adapter.hb_npm_path,"install","--unsafe-perm","--save",plugin_name_full], cwd=self.adapter.hb_plugins_path)
         p.wait()
+        
+        if name == 'homebridge-camera-ffmpeg':
+            if self.DEBUG:
+                print("homebridge-camera-ffmpeg -> Also installing ffmpeg-for-homebridge")
+            p = subprocess.Popen([self.adapter.hb_npm_path,"install","--save",'ffmpeg-for-homebridge'], cwd=self.adapter.hb_plugins_path)
+            p.wait()
+            
         
         self.adapter.update_installed_plugins_list()
         

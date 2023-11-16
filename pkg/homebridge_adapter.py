@@ -232,36 +232,11 @@ class HomebridgeAdapter(Adapter):
         self.privacy_preview_placed = False
         
         self.unbridge_camera = False # faster if set to True, but more hassle for the end user
-        self.camera_config = {
-                                "name": "Camera FFmpeg", 
-                                "porthttp": self.doorbell_port, 
-                                "cameras": [
-                                                {
-                                                "name": "Candle camera", 
-                                                "manufacturer": "Candle", 
-                                                "doorbell": True, 
-                                                "switches": True, 
-                                                "unbridge": False, 
-                                                "videoConfig": 
-                                                        {
-                                                        "source": "-i rtsp://localhost:" + str(self.rtsp_port) + "/pi", 
-                                                        "stillImageSource": "-i http://localhost:" + str(self.thumbnail_server_port) + "/thumbnail.jpg", 
-                                                        "maxWidth": 640, 
-                                                        "maxHeight": 480, 
-                                                        "maxFPS": 10,
-                                                        "forceMax": True,
-                                                        "additionalCommandline": "-x264-params intra-refresh=1:bframes=0",
-                                                        "audio": False,
-                                                        "≈": False
-                                                        }
-                                                }
-                                            ], 
-                                "platform": "Camera-ffmpeg"
-                            }
+        self.flip_video_string = ''
                             
                             
         
-                            
+        #self.camera_config['cameras'][0]['unbridge'] = self.camera_config
         
         # ring doorbell by requesting:
         # http://hostname:8559/doorbell?Candle%20camera
@@ -285,6 +260,49 @@ class HomebridgeAdapter(Adapter):
         except Exception as ex:
             print("Error loading config: " + str(ex))
             
+        
+        self.homekit_camera_name = "Candle camera"
+        if self.use_doorbell_button:
+            self.homekit_camera_name = "Candle doorbell"
+        
+        self.camera_config = {
+                                "name": "Camera FFmpeg", 
+                                "porthttp": self.doorbell_port, 
+                                "cameras": [
+                                                {
+                                                "name": self.homekit_camera_name, 
+                                                "manufacturer": "Candle", 
+                                                "doorbell": True, 
+                                                "switches": True, 
+                                                "unbridge": self.unbridge_camera, 
+                                                "videoConfig": 
+                                                        {
+                                                        "source": "-i rtsp://localhost:" + str(self.rtsp_port) + "/pi", # + self.flip_video_string 
+                                                        "stillImageSource": "-i http://localhost:" + str(self.thumbnail_server_port) + "/thumbnail.jpg", 
+                                                        "maxWidth": 640, 
+                                                        "maxHeight": 480, 
+                                                        "maxFPS": 10,
+                                                        "forceMax": False,
+                                                        "audio": False,
+                                                        #"≈": False,
+                                                        "vcodec": "copy",
+                                                        #"videoFilter": "scale=640x480",
+                                                       # "returnAudioTarget": "2way -probesize 32 -analyzeduration 32 -c:a pcm_mulaw -ab 128k -ac 1  -f alsa default -ar 16000 -thread_queue_size 2048", #ffmpeg -i error82.wav -f alsa plughw
+                                                        "returnAudioTarget": "-f alsa default",
+                                                        "debug": True,
+                                                        "debugReturn": True,
+                                                        "videoFilter": "scale=640x480",
+                                                        #"mapvideo": "1,0",
+                                                        #"mapaudio": "0,0",
+                                                        "packetSize": 752, # multiple of 188. originally was 1378
+                                                        "additionalCommandline": "-x264-params intra-refresh=1:bframes=0",
+                                                        }
+                                                }
+                                            ], 
+                                "platform": "Camera-ffmpeg"
+                            }
+        
+        
         
         # create list of installed plugins
         self.update_installed_plugins_list()
@@ -424,6 +442,19 @@ class HomebridgeAdapter(Adapter):
                 self.use_doorbell_button = bool(config['Enable doorbell button'])
                 if self.DEBUG:
                     print("Doorbell button enabled preference was in config: " + str(self.use_doorbell_button))
+                    
+            
+            if 'Rotate camera 180 degrees' in config:
+                if self.DEBUG:
+                    print("Rotate camera 180 degrees preference was in config: " + str(config['Rotate camera 180 degrees']))
+                if bool(config['Rotate camera 180 degrees']) == True:
+                    #self.flip_video_string = ' -vf \"transpose=1\"'
+                    self.flip_video_string = ' -vf \"transpose=2,transpose=2\"'
+
+                    
+            
+            
+            
                     
             if 'Separate the camera' in config:
                 self.unbridge_camera = bool(config['Separate the camera'])
